@@ -2,8 +2,7 @@
 #include "tcp.h"
 
 // Establish a connection using an SSL layer
-connection *sslConnect (char * server, int port)
-{
+connection *sslConnect (char * server, int port) {
   connection *c;
 
   c = malloc (sizeof (connection));
@@ -11,8 +10,7 @@ connection *sslConnect (char * server, int port)
   c->sslContext = NULL;
 
   c->socket = tcpConnect (server, port);
-  if (c->socket)
-    {
+  if (c->socket) {
       // Register the error strings for libcrypto & libssl
       SSL_load_error_strings ();
       // Register the available ciphers and digests
@@ -35,57 +33,43 @@ connection *sslConnect (char * server, int port)
       // Initiate SSL handshake
       if (SSL_connect (c->sslHandle) != 1)
         ERR_print_errors_fp (stderr);
-    }
-  else
-    {
+  }
+  else {
       perror ("Connect failed");
-    }
-
+  }
   return c;
 }
 
 // Disconnect & free connection struct
 void sslDisconnect (connection *c)
 {
-  if (c->socket)
-    close (c->socket);
-  if (c->sslHandle)
-    {
+  if (c->socket) close (c->socket);
+  if (c->sslHandle) {
       SSL_shutdown (c->sslHandle);
       SSL_free (c->sslHandle);
-    }
-  if (c->sslContext)
-    SSL_CTX_free (c->sslContext);
-
+  }
+  if (c->sslContext) SSL_CTX_free (c->sslContext);
   free (c);
 }
 
 // Read all available text from the connection
-char *sslRead (connection *c)
-{
+char *sslRead (connection *c) {
   const int readSize = 1024;
   char *rc = NULL;
   int received, count = 0;
   char buffer[1024];
 
-  if (c)
-    {
-      while (1)
-        {
-          if (!rc)
-            rc = malloc (readSize * sizeof (char) + 1);
-          else
-            rc = realloc (rc, (count + 1) *
-                          readSize * sizeof (char) + 1);
+  if (c) {
+      while (1) {
+          if (!rc) rc = malloc (readSize * sizeof (char) + 1);
+          else rc = realloc (rc, (count + 1) * readSize * sizeof (char) + 1);
 
           received = SSL_read (c->sslHandle, buffer, readSize);
           buffer[received] = '\0';
 
-          if (received > 0)
-            strcat (rc, buffer);
+          if (received > 0) strcat (rc, buffer);
 
-          if (received < readSize)
-            break;
+          if (received < readSize) break;
           count++;
         }
     }
@@ -94,13 +78,11 @@ char *sslRead (connection *c)
 }
 
 // Write text to the connection
-void sslWrite (connection *c, char *text)
-{
-  if (c)
-    SSL_write (c->sslHandle, text, strlen (text));
+void sslWrite (connection *c, char *text) {
+  if (c) SSL_write (c->sslHandle, text, strlen (text));
 }
 
-// Very basic main: we send GET / and print the response.
+/* Test Module.
 int main (int argc, char **argv)
 {
   connection *c;
@@ -118,3 +100,4 @@ int main (int argc, char **argv)
 
   return 0;
 }
+*/
