@@ -1,12 +1,7 @@
 #include "ssl.h"
-#include "jsmn.h"
 
-#ifndef __conn_h
-#define __conn_h
-
-jsmn_parser jsmnP;
-jsmntok_t jsmnTok[1000];
-int jsmnR, jsmnCount = 0;
+#ifndef __conn_h_
+#define __conn_h_
 
 #define MAXCONN 20
 #define MINCONN 1
@@ -26,5 +21,7 @@ typedef struct {
 	char *host, *url;
 	int port;
 } conn;
+
+conn newConn(char *, int);
 
 #endif

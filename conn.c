@@ -25,7 +25,6 @@ conn newConn(char *host, int port) {
 	return c;
 }
 
-
 int init(conn c) {
 	int i;
 

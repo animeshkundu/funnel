@@ -1,4 +1,4 @@
-#include "conn.h"
+#include "hconn.h"
 
 char *getToken(const char * js) {
 	if(0 == jsmnCount) {
@@ -21,16 +21,16 @@ char *getToken(const char * js) {
 	return data;
 }
 
-int handleRequest(int cSock, conn * hconn, int maxConn) {
+int handleRequest(int cSock, conn *hconn, int maxConn) {
 	int cur, sockNo, sock, port;
 	char *request, *response, *host, *data, *tmp;
 
 	request = tcpRead(cSock);
 	while(tmp = getToken(request)) {
 		if(tmp == NULL) break;
-		if(!strcmp("host", tmp)) host = getToken(js);
-		if(!strcmp("port", tmp)) port = atoi(getToken(js));
-		if(!strcmp("data", tmp)) data = getToken(js);
+		if(!strcmp("host", tmp)) host = getToken(request);
+		if(!strcmp("port", tmp)) port = atoi(getToken(request));
+		if(!strcmp("data", tmp)) data = getToken(request);
 	} 
 	
 	free(tmp); free(request);
@@ -38,13 +38,13 @@ int handleRequest(int cSock, conn * hconn, int maxConn) {
 	cur = exists(hconn, maxConn, host, port);
 	
 	if(cur < 0) {
-		hconn = realloc(hconn, sizeof(c));
+		hconn = realloc(hconn, sizeof(conn));
 		hconn[maxConn] = newConn(host, port);
 		cur = maxConn; maxConn++;
 	}
 		
 	sockNo = getConn(hconn[cur]);
-	sock = hconn[cur]->connPool[sockno];
+	sock = hconn[cur].connPool[sockNo];
 	sslWrite(sock, data);
 	response = sslRead(sock);
 	tcpWrite(cSock, response);

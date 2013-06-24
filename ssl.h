@@ -2,8 +2,8 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#ifndef __tcp_h
-#define __tcp_h
+#ifndef __tcp_h_
+#define __tcp_h_
 
 #include "tcp.h"
 

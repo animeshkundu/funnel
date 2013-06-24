@@ -23,9 +23,8 @@ int main() {
 			continue;
 		}
 		pthread_create (&thread, NULL, processRequest, (void *) &childfd);
+		pthread_detach (thread);
 		close(childfd);
 	}
 	return 1;
 }
-
-
