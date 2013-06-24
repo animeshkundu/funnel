@@ -1,28 +1,30 @@
-#include "ssl.h"
-
-#define MAXCONN 20
-#define MINCONN 1
-#define THOLD 1
-#define TIMEOUT 1800
-
-typedef struct {
-	connection *connPool[MAXCONN];
-	int connStatus[MAXCONN];
-	int connTime[MAXCONN];
-	int maxConn;
-	int curConn;
-	int increasePool;
-	int decreasePool;
-
-	/* Connection Details. */
-	char *host, *url;
-	int port;
-} conn;
+#include "conn.h"
 
 int check(conn c, char *host, int port) {
 	if(0 == strcmp(host, c.host) && port == c.port) return 1;
 	else return 0;
 }
+
+int exists (conn * hconn, int maxConn, char *host, int port) {
+	int cur = 0, flag = 0;
+	if(maxConn > 0) {
+		while(cur < maxConn) {
+			if(check(hconn[cur], host, port)) 
+			   return cur;
+			cur++;	
+		}
+	} else return -1;
+}
+
+conn newConn(char *host, int port) {
+	conn c; 
+	strcpy(c.host, host);
+	c.port = port;
+	init(c);
+
+	return c;
+}
+
 
 int init(conn c) {
 	int i;

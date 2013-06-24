@@ -1,5 +1,4 @@
 #include "ssl.h"
-#include "tcp.h"
 
 // Establish a connection using an SSL layer
 connection *sslConnect (char * server, int port) {

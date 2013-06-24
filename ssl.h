@@ -2,6 +2,11 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#ifndef __tcp_h
+#define __tcp_h
+
+#include "tcp.h"
+
 // Simple structure to keep track of the handle, and
 // of what needs to be freed later.
 typedef struct {
@@ -14,3 +19,4 @@ typedef struct {
 #define SERVER  "www.google.co.in"
 #define PORT 443
 
+#endif
