@@ -36,6 +36,8 @@ connection *sslConnect (char * server, int port) {
   else {
       perror ("Connect failed");
   }
+
+  LOG(0, "SSL connected");
   return c;
 }
 
@@ -52,10 +54,10 @@ void sslDisconnect (connection *c) {
 
 // Read all available text from the connection
 char *sslRead (connection *c) {
-  const int readSize = 1024;
+  const int readSize = 512;
   char *rc = NULL;
   int received, count = 0;
-  char buffer[1024];
+  char buffer[512];
 
   if (c) {
       while (1) {
@@ -77,7 +79,11 @@ char *sslRead (connection *c) {
 
 // Write text to the connection
 void sslWrite (connection *c, char *text) {
-  if (c) SSL_write (c->sslHandle, text, strlen (text));
+  if (c) {
+	  SSL_write (c->sslHandle, text, strlen (text));
+	  LOGV(0, "Sent to SSL connection", text);
+  }
+  else LOG(0, "Connection doesnot exist.");
 }
 
 /* Test Module.

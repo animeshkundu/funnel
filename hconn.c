@@ -21,18 +21,18 @@ char *getToken(const char * js) {
 	strncpy (data, js+jsmnTok[jsmnCount].start, (jsmnTok[jsmnCount].end - jsmnTok[jsmnCount].start));
 	jsmnCount++;
 
-	LOGV(0, "Returing token.", data);
 	return data;
 }
 
 int handleRequest(int cSock, conn *hconn, int maxConn) {
-	int cur, sockNo, sock, port;
+	int cur, sockNo, port;
+	connection *sock;
 	char *request = NULL, *response, *host, *data, *tmp;
 
 	request = (char *) malloc (2048 * sizeof(char));
 	LOG(0, "Inside handleRequest.");
 	request = tcpRead(cSock);
-	LOGV(0, "Request : ", request); LOG(0, "");
+	LOGV(0, "Request : ", request);
 	while(tmp = getToken(request)) {
 		if(tmp == NULL) break;
 		if(!strcmp("host", tmp)) host = getToken(request);
@@ -43,21 +43,27 @@ int handleRequest(int cSock, conn *hconn, int maxConn) {
 	free(tmp); free(request);
 	
 	LOGV(0, "Host : ", host);
-	LOGV(0, "Port : ", port);
-	LOGV(0, "Data : ", data);
+	LOGD(0, "Port : ", port);
+	LOGV(0, "Data : ", data); LOG(0, "");
 	cur = exists(hconn, maxConn, host, port);
-	
+	LOGD(0, "Connection Exists : ", cur);
+
 	if(cur < 0) {
 		hconn = realloc(hconn, sizeof(conn));
 		hconn[maxConn] = newConn(host, port);
 		cur = maxConn; maxConn++;
 	}
-		
+	
 	sockNo = getConn(hconn[cur]);
+	LOGD(0, "Socket No : ", sockNo);
 	sock = hconn[cur].connPool[sockNo];
+	LOG(0, "Got Socket ");
 	sslWrite(sock, data);
+	LOG(0, "Request sent to Bank.");
 	response = sslRead(sock);
+	LOGV(0, "Response : ", response);
 	tcpWrite(cSock, response);
+	LOG(0, "Sent response to client.");
 	
 	return maxConn;
 }
