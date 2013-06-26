@@ -50,13 +50,14 @@ int tcpConnect (char *ser, int port) {
 	return handle;
 }
 
-char *tcpRead (int sock) {
-  	const int readSize = 1024;
+char * tcpRead (int sock) {
+  	const int readSize = 512;
   	char *rc = NULL;
   	int received, count = 0;
-  	char buffer[1024];
+  	char buffer[512];
+  	LOGD(0, "Inside tcpRead", sock);
 
-  	if (sock) {
+	if (sock) {
       	while (1) {
           	if (!rc) rc = malloc (readSize * sizeof (char) + 1);
           	else rc = realloc (rc, (count + 1) * readSize * sizeof (char) + 1);
@@ -69,6 +70,8 @@ char *tcpRead (int sock) {
           	count++;
         }
     }
+
+	LOGV(0, "Read : ", rc);
   	return rc;
 }
 

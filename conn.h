@@ -1,7 +1,7 @@
 #include "ssl.h"
 
-#ifndef __conn_h_
-#define __conn_h_
+#ifndef __CONN_H_
+#define __CONN_H_
 
 #define MAXCONN 20
 #define MINCONN 1
@@ -22,6 +22,13 @@ typedef struct {
 	int port;
 } conn;
 
+int check(conn, char *, int);
+int exists (conn *, int, char *, int);
 conn newConn(char *, int);
+int init(conn);
+void addConn(conn);
+void deleteConn(conn);
+int getConn(conn);
+int freeConn(conn, int);
 
 #endif

@@ -40,8 +40,7 @@ connection *sslConnect (char * server, int port) {
 }
 
 // Disconnect & free connection struct
-void sslDisconnect (connection *c)
-{
+void sslDisconnect (connection *c) {
   if (c->socket) close (c->socket);
   if (c->sslHandle) {
       SSL_shutdown (c->sslHandle);

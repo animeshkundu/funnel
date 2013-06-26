@@ -1,2 +1,6 @@
 #include <pthread.h>
-#include "conn.h"
+
+#ifndef __HCONN_H_
+#include "hconn.h"
+#endif
+
