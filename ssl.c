@@ -82,19 +82,20 @@ void sslWrite (connection *c, char *text) {
   if (c) {
 	  SSL_write (c->sslHandle, text, strlen (text));
 	  LOGV(0, "Sent to SSL connection", text);
+	  free(text);
   }
   else LOG(0, "Connection doesnot exist.");
 }
 
-/* Test Module.
+/* Test Module. 
 int main (int argc, char **argv)
 {
   connection *c;
-  char *response;
+  char *response, *request = "POST /pgway/servlet/TranPortalXMLServlet HTTP/1.1\r\nHost: securepgtest.fssnet.co.in\r\nContent-Type: text/xml\r\nContent-Length: 388\r\n\r\n<id>90000970</id> <password>password</password> <card>5123456789012346</card> <cvv2>123</cvv2> <expyear>2013</expyear> <expmonth>05</expmonth> <member>Test User</member> <action>1</action> <amt> 1020 </amt> <currencycode>356</currencycode> <trackid>27249600</trackid> <udf1>Product Info</udf1> <udf2>_emailid_</udf2> <udf3>1234567890</udf3> <udf4></udf4> <udf5>bd29bd3736917b72df81</udf5>";
 
-  c = sslConnect ("www.google.co.in", 443);
+  c = sslConnect ("securepgtest.fssnet.co.in", 443);
 
-  sslWrite (c, "GET /\r\n\r\n");
+  sslWrite (c, request);
   response = sslRead (c);
 
   printf ("%s\n", response);
@@ -103,5 +104,4 @@ int main (int argc, char **argv)
   free (response);
 
   return 0;
-}
-*/
+}*/

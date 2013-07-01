@@ -25,7 +25,7 @@ int tcpCreate (int portno) {
 }
 
 int tcpConnect (char *ser, int port) {
-	int error, handle;
+	int error, handle, flag = 1;
 	struct hostent *host;
 	struct sockaddr_in server;
 
@@ -45,7 +45,7 @@ int tcpConnect (char *ser, int port) {
 		if (error == -1) {
 			perror ("Connect");
 		 	handle = 0;
-		}
+		} else setsockopt(handle, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(int));
 	}
 	return handle;
 }
@@ -55,7 +55,7 @@ char * tcpRead (int sock) {
   	char *rc = NULL;
   	int received, count = 0;
   	char buffer[512];
-  	LOGD(0, "Inside tcpRead", sock);
+  	//LOGD(0, "Inside tcpRead", sock);
 
 	if (sock) {
       	while (1) {
@@ -70,11 +70,12 @@ char * tcpRead (int sock) {
           	count++;
         }
     }
-
-	LOGV(0, "Read : ", rc);
+	
+	//LOGV(0, "Read : ", rc);
   	return rc;
 }
 
 void tcpWrite (int sock, char *text) {
 	if (sock) write (sock, text, strlen (text));
+	free(text);
 }

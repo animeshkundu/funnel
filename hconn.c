@@ -16,25 +16,49 @@ char *getToken(const char * js) {
 		return NULL;
 	}
 
-	char * data;
+	char * data; int i, k=0;
 	data = (char *) malloc ( sizeof(char) * (jsmnTok[jsmnCount].end - jsmnTok[jsmnCount].start + 1) );
-	strncpy (data, js+jsmnTok[jsmnCount].start, (jsmnTok[jsmnCount].end - jsmnTok[jsmnCount].start));
+	for(i = jsmnTok[jsmnCount].start; i<jsmnTok[jsmnCount].end; i++) {
+		if (js[i] == 92) {
+			if (js[i+1] == 47 || js[i+1] == 92) data[k++] = js[i+1]; 
+			else if (js[i+1] == 'r') data[k++] = '\r';
+			else if (js[i+1] == 'n') data[k++] = '\n';
+			else data[k++] = js[i];
+			i++; continue;
+		}
+		data[k++] = js[i];
+	}
+	data[k] = '\0';	
+	/*strncpy (data, js+jsmnTok[jsmnCount].start, (jsmnTok[jsmnCount].end - jsmnTok[jsmnCount].start));*/
 	jsmnCount++;
 
 	return data;
 }
 
+char processRead(char * req) {
+	int i=0, j=0, len = strlen(req);
+	while(req[i]!='{' && req[i+1]!='"') i++;
+	strncpy(req, req + i, len - i);
+	while(req[len-i+j]!=0) {
+		req[len-i+j] = 0; j++;
+	}
+}
+
 int handleRequest(int cSock, conn *hconn, int maxConn) {
 	int cur, sockNo, port;
 	connection *sock;
-	char *request = NULL, *response, *host, *data, *tmp;
+	char *request, *response, *host, *data, *tmp;
 
-	request = (char *) malloc (2048 * sizeof(char));
 	LOG(0, "Inside handleRequest.");
 	request = tcpRead(cSock);
+	processRead(request);
 	LOGV(0, "Request : ", request);
 	while(tmp = getToken(request)) {
-		if(tmp == NULL) break;
+		if(tmp == NULL) {
+			LOGV(10, "JSON String not properly formatted.", request);
+			free(tmp); free(request);
+			return maxConn;
+		}
 		if(!strcmp("host", tmp)) host = getToken(request);
 		if(!strcmp("port", tmp)) port = atoi(getToken(request));
 		if(!strcmp("data", tmp)) data = getToken(request);
@@ -49,21 +73,29 @@ int handleRequest(int cSock, conn *hconn, int maxConn) {
 	LOGD(0, "Connection Exists : ", cur);
 
 	if(cur < 0) {
-		hconn = realloc(hconn, sizeof(conn));
+		hconn = (NULL == hconn) ? ((conn *) malloc (sizeof(hConnPool))) : (realloc (hconn, (sizeof(hConnPool) * (maxConn + 1))));
+		LOG(0, "Malloced or realloced hconn");
 		hconn[maxConn] = newConn(host, port);
+		LOGD(0, "Created new hconn", hconn[maxConn]->connPool[0]->socket);
 		cur = maxConn; maxConn++;
 	}
 	
 	sockNo = getConn(hconn[cur]);
 	LOGD(0, "Socket No : ", sockNo);
-	sock = hconn[cur].connPool[sockNo];
-	LOG(0, "Got Socket ");
+	sock = hconn[cur]->connPool[sockNo];
+	LOGD(0, "Got Socket : ", sock->socket);
 	sslWrite(sock, data);
 	LOG(0, "Request sent to Bank.");
 	response = sslRead(sock);
 	LOGV(0, "Response : ", response);
+	strcat(response, "\r\n");
 	tcpWrite(cSock, response);
 	LOG(0, "Sent response to client.");
-	
+
+	//shutdown(cSock, SHUT_WR);
+	while(strlen(tcpRead(cSock)) > 0) usleep(500);
+	//close(cSock);
+
+	free(request); free(host); free(tmp);
 	return maxConn;
 }

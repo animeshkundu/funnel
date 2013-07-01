@@ -20,7 +20,7 @@ typedef struct {
 	/* Connection Details. */
 	char *host, *url;
 	int port;
-} conn;
+} *conn, hConnPool;
 
 int check(conn, char *, int);
 int exists (conn *, int, char *, int);

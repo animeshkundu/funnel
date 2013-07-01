@@ -1,12 +1,13 @@
 #include "funnel.h"
 
-conn * handleConn;
+conn *handleConn; 
 int maxConn = 0;
 
 void * processRequest(void *data) {
 	int sock = *((int *)(data));
 	LOGD(0, "Inside new thread", sock);
-	maxConn = handleRequest(sock, handleConn, maxConn);
+	handleRequest(sock, handleConn, maxConn);
+	LOGD(0, "Thread has ended", maxConn);
 	return;
 }
 
@@ -14,8 +15,9 @@ int main() {
 	int fd, childfd, clientLen;
 	struct sockaddr_in clientAddr;
 	pthread_t thread;
-	char *data;
 
+	handleConn = (conn *) malloc (sizeof(hConnPool));
+	//handleConn = NULL;
 	fd = tcpCreate(4321);
 	clientLen = sizeof(clientAddr);
 	while(1) {
