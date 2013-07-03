@@ -83,19 +83,32 @@ int handleRequest(int cSock, conn *hconn, int maxConn) {
 	sockNo = getConn(hconn[cur]);
 	LOGD(0, "Socket No : ", sockNo);
 	sock = hconn[cur]->connPool[sockNo];
+	
+	if(sock < 0) {
+		sslDisconnect(hconn[cur]->connPool[sockNo]);
+		hconn[cur]->connPool[sockNo] = sslConnect(hconn[cur]->host, hconn[cur]->port);
+		LOGD(0, "Reconnected Disconnected connection", cur);
+		sock = hconn[cur]->connPool[sockNo];
+	}
+
 	LOGD(0, "Got Socket : ", sock->socket);
 	sslWrite(sock, data);
 	LOG(0, "Request sent to Bank.");
 	response = sslRead(sock);
-	LOGV(0, "Response : ", response);
+	LOGV(5, "Response : ", response);
 	strcat(response, "\r\n");
 	tcpWrite(cSock, response);
 	LOG(0, "Sent response to client.");
 
+	//sslDisconnect(hconn[cur]->connPool[sockNo]);
+	//hconn[cur]->connPool[sockNo] = sslConnect(hconn[cur]->host, hconn[cur]->port);
+
+	int timeTaken = freeConn(hconn[cur], cur);
+	LOGD(0, "Time taken : ", timeTaken);
 	//shutdown(cSock, SHUT_WR);
 	while(strlen(tcpRead(cSock)) > 0) usleep(500);
 	//close(cSock);
 
-	free(request); free(host); free(tmp);
+	free(host);
 	return maxConn;
 }

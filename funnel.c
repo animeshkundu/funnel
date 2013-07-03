@@ -6,17 +6,29 @@ int maxConn = 0;
 void * processRequest(void *data) {
 	int sock = *((int *)(data));
 	LOGD(0, "Inside new thread", sock);
-	handleRequest(sock, handleConn, maxConn);
+	maxConn = handleRequest(sock, handleConn, maxConn);
 	LOGD(0, "Thread has ended", maxConn);
 	return;
+}
+
+void * refreshConn(void *ptr) {
+	while(1) {
+		if(handleConn == NULL || maxConn <= 0)  continue;
+		refresher(handleConn, maxConn);
+	}
 }
 
 int main() {
 	int fd, childfd, clientLen;
 	struct sockaddr_in clientAddr;
-	pthread_t thread;
+	pthread_t thread, refresh;
 
 	handleConn = (conn *) malloc (sizeof(hConnPool));
+
+	/* Refresh connections. */
+	pthread_create (&refresh, NULL, refreshConn, 0);
+	pthread_detach (refresh);
+
 	//handleConn = NULL;
 	fd = tcpCreate(4321);
 	clientLen = sizeof(clientAddr);

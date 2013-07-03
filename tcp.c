@@ -20,7 +20,7 @@ int tcpCreate (int portno) {
     if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) 
 	    error("ERROR on binding");
 
-  	if (listen(parentfd, 10) < 0) error("ERROR on listen");
+  	if (listen(parentfd, 100) < 0) error("ERROR on listen");
 	return parentfd;
 }
 
@@ -51,10 +51,10 @@ int tcpConnect (char *ser, int port) {
 }
 
 char * tcpRead (int sock) {
-  	const int readSize = 512;
-  	char *rc = NULL;
+  	const int readSize = 2;
+  	char *rc = NULL, *buffer;
   	int received, count = 0;
-  	char buffer[512];
+	buffer = (char *) malloc (sizeof(char) * (readSize + 1));
   	//LOGD(0, "Inside tcpRead", sock);
 
 	if (sock) {
@@ -63,19 +63,31 @@ char * tcpRead (int sock) {
           	else rc = realloc (rc, (count + 1) * readSize * sizeof (char) + 1);
 
           	received = read(sock, buffer, readSize);
-          	buffer[received] = '\0';
+			
+			if (received < readSize) {
+	          	buffer[received] = 0;
+				strcat(rc, buffer);
+				break;
+			}
 
-          	if (received > 0) strcat (rc, buffer);
-          	if (received < readSize) break;
+          	if (received > 0) {
+				LOGD(0, "Length Received : ", received);
+				strcat (rc, buffer);
+			}
           	count++;
         }
     }
 	
 	//LOGV(0, "Read : ", rc);
-  	return rc;
+	char * out = NULL;
+	out = (char *) malloc (sizeof(char) * strlen(rc) + 1);
+	strcpy(out, rc); 
+
+	free(buffer); free(rc);
+  	return out;
 }
 
 void tcpWrite (int sock, char *text) {
 	if (sock) write (sock, text, strlen (text));
-	free(text);
+	//free(text);
 }

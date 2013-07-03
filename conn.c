@@ -24,10 +24,49 @@ int exists (conn *hconn, int maxConn, char *host, int port) {
 	return -1;
 }
 
+void refresher(conn *hconn, int maxConn) {
+	if (maxConn <= 0) {
+	   usleep(5000);
+   	   return;
+	}
+	
+	int cur = 0, inCur, curTime;
+	while(cur < maxConn) {
+		/* Loop through connection pool looking to delete connections. */
+		inCur = 0; curTime = time(NULL);
+		while(inCur < hconn[cur]->maxConn) {
+			/* if(strlen(sslRead(hconn[cur]->connPool[inCur])) <= 0) {
+				hconn[cur]->connStatus[inCur] = 1;
+				sslDisconnect(hconn[cur]->connPool[inCur]);
+				hconn[cur]->connPool[inCur] = sslConnect(hconn[cur]->host, hconn[cur]->port);
+				LOGD(5, "Reconnected disconnected connection", inCur);
+				hconn[cur]->connStatus[inCur] = 0;
+			}*/
+
+			if( (curTime - hconn[cur]->connTime[inCur]) > TIMEOUT )
+				hconn[cur]->decreasePool++;
+			
+			inCur++;
+		}
+
+		if(hconn[cur]->decreasePool > 0 && 0 == hconn[cur]->increasePool) {
+			deleteConn(hconn[cur]); hconn[cur]->decreasePool = 0;
+			LOGD(5, "Deleted connection. ConnPool : ", cur);
+		} else if(hconn[cur]->increasePool > 0 && 0 == hconn[cur]->decreasePool) {
+			addConn(hconn[cur]); hconn[cur]->increasePool = 0;
+			LOGD(5, "Added connection. ConnPool : ", cur);
+		} else if(hconn[cur]->increasePool > 0 && hconn[cur]->decreasePool > 0) {
+			LOGD(5, "Neutralized : ", cur);
+			hconn[cur]->increasePool = 0; hconn[cur]->decreasePool = 0;
+		}
+
+		cur++; usleep(500);
+	}	
+}
+
 conn newConn(char *host, int port) {
 	conn c;	
 	c = (conn) malloc (sizeof(hConnPool));
-	//c = (conn) realloc (c, (sizeof(hConnPool) + strlen(host)));
 	c->host = (char *) malloc (strlen(host) * sizeof(char));
 	strcpy(c->host, host);
 	c->port = port;
@@ -61,10 +100,12 @@ void addConn(conn c) {
 	c->connTime[curMax] = time(NULL);
 
 	c->maxConn++;
+	LOGV(5, "Added Connection", c->host);
 }
 
 void deleteConn(conn c) {
 	c->maxConn--;
+	LOGV(5, "Deleted Connection", c->host);
 	/* Free or not to free, that is the question. */
 }
 
@@ -74,13 +115,24 @@ int getConn(conn c) {
 	while(c->connStatus[cur] > 0) {
 		cur = (cur >= c->maxConn - 1) ? 0 : cur + 1;
 		track++;
+		if(track > c->maxConn * THOLD) {
+			addConn(c); track = 0;
+		}
+		usleep(50);
 	}
 
 	c->connStatus[cur] = 1; c->connTime[cur] = time(NULL);
 
 	if(track > c->maxConn * THOLD) c->increasePool++;
+	LOGD(0, "Current Track : ", track);
 
 	c->curConn = (cur >= c->maxConn - 1) ? 0 : cur + 1;
+
+	if(c->connPool[cur] < 0) {
+		sslDisconnect(c->connPool[cur]);
+		c->connPool[cur] = sslConnect(c->host, c->port);
+		LOGD(0, "Reconnected disconnected connection : ", cur);
+	}
 
 	return cur;
 }
@@ -94,3 +146,5 @@ int freeConn(conn c, int p) {
 
 	return wastedTime;
 }
+
+
