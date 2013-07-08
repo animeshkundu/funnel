@@ -4,3 +4,5 @@ hitServer.c
 *.php
 a.out
 hit/*
+*.gdb
+
