@@ -1,0 +1,6 @@
+*.cpp
+*.cxx
+hitServer.c
+*.php
+a.out
+hit/*
