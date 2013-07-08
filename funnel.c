@@ -8,7 +8,7 @@ void * processRequest(void *data) {
 	LOGD(0, "Inside new thread", sock);
 	maxConn = handleRequest(sock, handleConn, maxConn);
 	LOGD(0, "Thread has ended", maxConn);
-	return;
+	pthread_exit(NULL);
 }
 
 void * refreshConn(void *ptr) {
