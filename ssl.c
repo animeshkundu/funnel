@@ -1,6 +1,6 @@
 #include "ssl.h"
 
-// Establish a connection using an SSL layer
+/* Establish a connection using an SSL layer. */
 connection *sslConnect (char * server, int port) {
   connection *c;
 
@@ -10,38 +10,25 @@ connection *sslConnect (char * server, int port) {
 
   c->socket = tcpConnect (server, port);
   if (c->socket) {
-      // Register the error strings for libcrypto & libssl
       SSL_load_error_strings ();
-      // Register the available ciphers and digests
       SSL_library_init ();
 
-      // New context saying we are a client, and using SSL 2 or 3
       c->sslContext = SSL_CTX_new (SSLv23_client_method ());
-      if (c->sslContext == NULL)
-        ERR_print_errors_fp (stderr);
+      if (c->sslContext == NULL) ERR_print_errors_fp (stderr);
 
-      // Create an SSL struct for the connection
       c->sslHandle = SSL_new (c->sslContext);
-      if (c->sslHandle == NULL)
-        ERR_print_errors_fp (stderr);
+      if (c->sslHandle == NULL) ERR_print_errors_fp (stderr);
 
-      // Connect the SSL struct to our connection
-      if (!SSL_set_fd (c->sslHandle, c->socket))
-        ERR_print_errors_fp (stderr);
+      if (!SSL_set_fd (c->sslHandle, c->socket)) ERR_print_errors_fp (stderr);
 
-      // Initiate SSL handshake
-      if (SSL_connect (c->sslHandle) != 1)
-        ERR_print_errors_fp (stderr);
-  }
-  else {
-      perror ("Connect failed");
-  }
+      if (SSL_connect (c->sslHandle) != 1) ERR_print_errors_fp (stderr);
+  } else perror ("Connect failed");
 
   LOG(0, "SSL connected");
   return c;
 }
 
-// Disconnect & free connection struct
+/* Disconnect & free connection struct. */
 void sslDisconnect (connection *c) {
   if (c->socket) close (c->socket);
   if (c->sslHandle) {
@@ -52,9 +39,9 @@ void sslDisconnect (connection *c) {
   free (c);
 }
 
-// Read all available text from the connection
+/* Read all available text from the connection. */
 char *sslRead (connection *c) {
-  const int readSize = 40960;
+  const int readSize = 4096;
   char *rc = NULL, *buffer;
   int received, count = 0;
   buffer = (char *) malloc (readSize * sizeof(char));
@@ -77,14 +64,16 @@ char *sslRead (connection *c) {
         }
   }
 
-  free(buffer); char * out; 
+  free(buffer); 
+  /* Fixed cleanup routine.
+  char * out; 
   out = (char *) malloc (sizeof(char) * strlen(rc) + 1);
-  strcpy(out, rc); free(rc);
+  strcpy(out, rc); free(rc);*/
 
-  return out;
+  return rc;
 }
 
-// Write text to the connection
+/* Write text to the connection. */
 void sslWrite (connection *c, char *text) {
   if (c) {
 	  SSL_write (c->sslHandle, text, strlen (text));

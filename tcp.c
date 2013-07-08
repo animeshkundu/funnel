@@ -77,7 +77,8 @@ char * tcpRead (int sock) {
         }
     }
 	
-	/*LOGV(0, "Read : ", rc);
+	/* Before using cleanup routine. 
+	LOGV(0, "Read : ", rc);
 	char *out;
 	out = (char *) malloc (count * sizeof(char) + 1);
 	strcpy(out, rc); free(rc); */
@@ -88,5 +89,5 @@ char * tcpRead (int sock) {
 
 void tcpWrite (int sock, char *text) {
 	if (sock) write (sock, text, strlen (text));
-	//free(text);
+	free(text);
 }

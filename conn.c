@@ -89,6 +89,7 @@ int init(conn c) {
 	c->curConn = 0;
 	c->increasePool = 0;
 	c->decreasePool = 0;
+	c->getConnLock = 0;
 
 	return 1;
 }
@@ -112,16 +113,20 @@ void deleteConn(conn c) {
 int getConn(conn c) {
 	int track = 0, cur = c->curConn;
 	
+	while(c->getConnLock > 0) usleep(500);
+	c->getConnLock = 1;
+
 	while(c->connStatus[cur] > 0) {
 		cur = (cur >= c->maxConn - 1) ? 0 : cur + 1;
 		track++;
 		if(track > c->maxConn * THOLD) {
 			addConn(c); track = 0;
 		}
-		usleep(50);
 	}
 
-	c->connStatus[cur] = 1; c->connTime[cur] = time(NULL);
+	c->connStatus[cur] = 1; 
+	c->getConnLock = 0;
+	c->connTime[cur] = time(NULL);
 
 	if(track > c->maxConn * THOLD) c->increasePool++;
 	LOGD(0, "Current Track : ", track);

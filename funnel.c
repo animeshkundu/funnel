@@ -16,6 +16,7 @@ void * refreshConn(void *ptr) {
 		if(handleConn == NULL || maxConn <= 0)  continue;
 		refresher(handleConn, maxConn);
 	}
+	pthread_exit(NULL);
 }
 
 int main() {
@@ -26,8 +27,8 @@ int main() {
 	handleConn = (conn *) malloc (sizeof(hConnPool));
 
 	/* Refresh connections. */
-	//pthread_create (&refresh, NULL, refreshConn, 0);
-	//pthread_detach (refresh);
+	pthread_create (&refresh, NULL, refreshConn, 0);
+	pthread_detach (refresh);
 
 	fd = tcpCreate(4321);
 	clientLen = sizeof(clientAddr);

@@ -110,6 +110,6 @@ int handleRequest(int cSock, conn *hconn, int maxConn) {
 	//while(strlen(tcpRead(cSock)) > 0) usleep(500);
 	usleep(500); close(cSock);
 
-	free(host); free(response);
+	free(host); //free(response);
 	return maxConn;
 }
