@@ -54,10 +54,10 @@ void sslDisconnect (connection *c) {
 
 // Read all available text from the connection
 char *sslRead (connection *c) {
-  const int readSize = 512;
-  char *rc = NULL;
+  const int readSize = 40960;
+  char *rc = NULL, *buffer;
   int received, count = 0;
-  char buffer[512];
+  buffer = (char *) malloc (readSize * sizeof(char));
 
   if (c) {
       while (1) {
@@ -65,16 +65,23 @@ char *sslRead (connection *c) {
           else rc = realloc (rc, (count + 1) * readSize * sizeof (char) + 1);
 
           received = SSL_read (c->sslHandle, buffer, readSize);
-          buffer[received] = '\0';
+          
+		  if (received < readSize) {
+			  buffer[received] = 0;
+			  strcat(rc, buffer);
+			  break;
+		  }
 
           if (received > 0) strcat (rc, buffer);
-
-          if (received < readSize) break;
           count++;
         }
-    }
+  }
 
-  return rc;
+  free(buffer); char * out; 
+  out = (char *) malloc (sizeof(char) * strlen(rc) + 1);
+  strcpy(out, rc); free(rc);
+
+  return out;
 }
 
 // Write text to the connection

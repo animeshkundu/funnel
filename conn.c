@@ -35,7 +35,7 @@ void refresher(conn *hconn, int maxConn) {
 		/* Loop through connection pool looking to delete connections. */
 		inCur = 0; curTime = time(NULL);
 		while(inCur < hconn[cur]->maxConn) {
-			/* if(strlen(sslRead(hconn[cur]->connPool[inCur])) <= 0) {
+			/*if(strlen(sslRead(hconn[cur]->connPool[inCur])) < 0 && hconn[cur]->connStatus[inCur] == 0) {
 				hconn[cur]->connStatus[inCur] = 1;
 				sslDisconnect(hconn[cur]->connPool[inCur]);
 				hconn[cur]->connPool[inCur] = sslConnect(hconn[cur]->host, hconn[cur]->port);
@@ -67,11 +67,11 @@ void refresher(conn *hconn, int maxConn) {
 conn newConn(char *host, int port) {
 	conn c;	
 	c = (conn) malloc (sizeof(hConnPool));
-	c->host = (char *) malloc (strlen(host) * sizeof(char));
+	c->host = (char *) malloc ((strlen(host) + 1) * sizeof(char));
 	strcpy(c->host, host);
 	c->port = port;
 	init(c);
-	LOG(0, "Here");
+	LOG(0, "Created new connection.");
 	return c;
 }
 

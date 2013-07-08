@@ -26,10 +26,9 @@ int main() {
 	handleConn = (conn *) malloc (sizeof(hConnPool));
 
 	/* Refresh connections. */
-	pthread_create (&refresh, NULL, refreshConn, 0);
-	pthread_detach (refresh);
+	//pthread_create (&refresh, NULL, refreshConn, 0);
+	//pthread_detach (refresh);
 
-	//handleConn = NULL;
 	fd = tcpCreate(4321);
 	clientLen = sizeof(clientAddr);
 	while(1) {
@@ -42,7 +41,6 @@ int main() {
 		pthread_create (&thread, NULL, processRequest, (void *) &childfd);
 		pthread_detach (thread);
 		LOG(0, "Created new thread");
-		//close(childfd);
 	}
 	return 1;
 }

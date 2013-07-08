@@ -73,7 +73,7 @@ int handleRequest(int cSock, conn *hconn, int maxConn) {
 	LOGD(0, "Connection Exists : ", cur);
 
 	if(cur < 0) {
-		hconn = (NULL == hconn) ? ((conn *) malloc (sizeof(hConnPool))) : (realloc (hconn, (sizeof(hConnPool) * (maxConn + 1))));
+		hconn = (NULL == hconn) ? ((conn *) malloc (sizeof(hConnPool))) : ((conn *) realloc (hconn, (sizeof(hConnPool) * (maxConn + 1))));
 		LOG(0, "Malloced or realloced hconn");
 		hconn[maxConn] = newConn(host, port);
 		LOGD(0, "Created new hconn", hconn[maxConn]->connPool[0]->socket);
@@ -92,8 +92,8 @@ int handleRequest(int cSock, conn *hconn, int maxConn) {
 	}
 
 	LOGD(0, "Got Socket : ", sock->socket);
+	LOGV(5, "Request sent to Bank.", data);
 	sslWrite(sock, data);
-	LOG(0, "Request sent to Bank.");
 	response = sslRead(sock);
 	LOGV(5, "Response : ", response);
 	strcat(response, "\r\n");
@@ -105,10 +105,11 @@ int handleRequest(int cSock, conn *hconn, int maxConn) {
 
 	int timeTaken = freeConn(hconn[cur], cur);
 	LOGD(0, "Time taken : ", timeTaken);
-	//shutdown(cSock, SHUT_WR);
-	while(strlen(tcpRead(cSock)) > 0) usleep(500);
-	//close(cSock);
+	
+	//shutdown(cSock, SHUT_WR);	
+	//while(strlen(tcpRead(cSock)) > 0) usleep(500);
+	usleep(500); close(cSock);
 
-	free(host);
+	free(host); free(response);
 	return maxConn;
 }

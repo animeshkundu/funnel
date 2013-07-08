@@ -51,40 +51,39 @@ int tcpConnect (char *ser, int port) {
 }
 
 char * tcpRead (int sock) {
-  	const int readSize = 2;
-  	char *rc = NULL, *buffer;
-  	int received, count = 0;
+  	const int readSize = 40961;
+  	char *rc = NULL, *buffer,  *nullp = NULL;
+	int received, count = 0, len = 0;
 	buffer = (char *) malloc (sizeof(char) * (readSize + 1));
   	//LOGD(0, "Inside tcpRead", sock);
+	
+	int flags = fcntl(sock, F_GETFL, 0);
+	fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 
 	if (sock) {
+		usleep(5000);
       	while (1) {
-          	if (!rc) rc = malloc (readSize * sizeof (char) + 1);
-          	else rc = realloc (rc, (count + 1) * readSize * sizeof (char) + 1);
+			memset(buffer, 0, readSize);
+          	received = read(sock, buffer, readSize - 1);
+	
+			len = strlen(buffer);
+			count += (len < (readSize - 1)) ? len : readSize;
+			LOGD(0, "************* Current Count : ", count);
+			if (!rc) rc = (char *) malloc ( (count + 1) * sizeof (char) );
+          	else rc = (char *) realloc ( rc, (count + 1) * sizeof (char) );
 
-          	received = read(sock, buffer, readSize);
-			
-			if (received < readSize) {
-	          	buffer[received] = 0;
-				strcat(rc, buffer);
-				break;
-			}
-
-          	if (received > 0) {
-				LOGD(0, "Length Received : ", received);
-				strcat (rc, buffer);
-			}
-          	count++;
+          	if (received > 0) strcat (rc, buffer);
+			else break; usleep(500);
         }
     }
 	
-	//LOGV(0, "Read : ", rc);
-	char * out = NULL;
-	out = (char *) malloc (sizeof(char) * strlen(rc) + 1);
-	strcpy(out, rc); 
-
-	free(buffer); free(rc);
-  	return out;
+	/*LOGV(0, "Read : ", rc);
+	char *out;
+	out = (char *) malloc (count * sizeof(char) + 1);
+	strcpy(out, rc); free(rc); */
+	
+	free(buffer); 
+	return rc;
 }
 
 void tcpWrite (int sock, char *text) {
