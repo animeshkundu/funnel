@@ -15,7 +15,7 @@ typedef struct {
 
 connection *sslConnect (char *, int);
 void sslDisconnect (connection *);
-char *sslRead(connection *);
-void sslWrite(connection *, char *);
+int sslRead(connection *, char[]);
+int sslWrite(connection *, char *);
 
 #endif

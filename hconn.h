@@ -8,7 +8,9 @@ jsmn_parser jsmnP;
 jsmntok_t jsmnTok[1000];
 int jsmnR, jsmnCount;
 
-char *getToken(const char *);
+int getToken(const char *, char[]);
 int handleRequest(int, conn *, int);
+int processRead(char[]);
+int reconnect(conn, int);
 
 #endif

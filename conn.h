@@ -4,9 +4,9 @@
 #define __CONN_H_
 
 #define MAXCONN 20
-#define MINCONN 1
+#define MINCONN 2
 #define THOLD 1
-#define TIMEOUT 1800
+#define TIMEOUT 20
 
 typedef struct {
 	connection *connPool[MAXCONN];
@@ -18,7 +18,7 @@ typedef struct {
 	int decreasePool;
 
 	/* Connection Details. */
-	char *host, *url;
+	char host[1024], *url;
 	int port;
 
 	int getConnLock, freeConnLock;
@@ -29,8 +29,9 @@ int exists (conn *, int, char *, int);
 conn newConn(char *, int);
 int init(conn);
 void addConn(conn);
-void deleteConn(conn);
+int deleteConn(conn);
 int getConn(conn);
 int freeConn(conn, int);
+void refresher(conn[], int);
 
 #endif

@@ -1,12 +1,12 @@
 #include "conn.h"
 
-int check(conn c, char *host, int port) {
+int check(conn c, char host[], int port) {
 	LOGV(0, "Checking ", c->host); LOG(0, "");
 	if(0 == strcmp(host, c->host) && port == c->port) return 1;
 	return 0;
 }
 
-int exists (conn *hconn, int maxConn, char *host, int port) {
+int exists (conn hconn[], int maxConn, char host[], int port) {
 	LOGD(0, "Max Connections : ", maxConn);
 	if(NULL == hconn) return -1;
 
@@ -24,7 +24,7 @@ int exists (conn *hconn, int maxConn, char *host, int port) {
 	return -1;
 }
 
-void refresher(conn *hconn, int maxConn) {
+void refresher(conn hconn[], int maxConn) {
 	if (maxConn <= 0) {
 	   usleep(5000);
    	   return;
@@ -50,13 +50,15 @@ void refresher(conn *hconn, int maxConn) {
 		}
 
 		if(hconn[cur]->decreasePool > 0 && 0 == hconn[cur]->increasePool) {
-			deleteConn(hconn[cur]); hconn[cur]->decreasePool = 0;
-			LOGD(5, "Deleted connection. ConnPool : ", cur);
+			if(deleteConn(hconn[cur]) > 0) { 
+				hconn[cur]->decreasePool = 0;
+				LOGD(6, "Deleted connection. ConnPool : ", cur);
+			}
 		} else if(hconn[cur]->increasePool > 0 && 0 == hconn[cur]->decreasePool) {
 			addConn(hconn[cur]); hconn[cur]->increasePool = 0;
-			LOGD(5, "Added connection. ConnPool : ", cur);
+			LOGD(6, "Added connection. ConnPool : ", cur);
 		} else if(hconn[cur]->increasePool > 0 && hconn[cur]->decreasePool > 0) {
-			LOGD(5, "Neutralized : ", cur);
+			LOGD(6, "Neutralized : ", cur);
 			hconn[cur]->increasePool = 0; hconn[cur]->decreasePool = 0;
 		}
 
@@ -64,10 +66,10 @@ void refresher(conn *hconn, int maxConn) {
 	}	
 }
 
-conn newConn(char *host, int port) {
-	conn c;	
+conn newConn(char host[], int port) {
+	conn c;
 	c = (conn) malloc (sizeof(hConnPool));
-	c->host = (char *) malloc ((strlen(host) + 1) * sizeof(char));
+	//c->host = (char *) malloc ((strlen(host) + 1) * sizeof(char));
 	strcpy(c->host, host);
 	c->port = port;
 	init(c);
@@ -104,28 +106,34 @@ void addConn(conn c) {
 	LOGV(5, "Added Connection", c->host);
 }
 
-void deleteConn(conn c) {
-	c->maxConn--;
-	LOGV(5, "Deleted Connection", c->host);
-	/* Free or not to free, that is the question. */
+int deleteConn(conn c) {
+	if(0 == c->connStatus[c->maxConn]) {
+		c->maxConn--;
+		LOGV(5, "Deleted Connection", c->host);
+		/* Free or not to free, that is the question. */
+		return 1;
+	} else return -1;
 }
 
 int getConn(conn c) {
 	int track = 0, cur = c->curConn;
 	
-	while(c->getConnLock > 0) usleep(500);
-	c->getConnLock = 1;
+	//while(c->getConnLock > 0) usleep(500);
+	//c->getConnLock = 1;
 
 	while(c->connStatus[cur] > 0) {
 		cur = (cur >= c->maxConn - 1) ? 0 : cur + 1;
 		track++;
-		if(track > c->maxConn * THOLD) {
+
+		/* Explicit fallback. */
+		if(track > (c->maxConn * 3 * THOLD)) {
+			LOGD(6, "Forced Increase of connection pool. Track : ", track);
 			addConn(c); track = 0;
 		}
 	}
 
 	c->connStatus[cur] = 1; 
-	c->getConnLock = 0;
+	//c->getConnLock = 0;
 	c->connTime[cur] = time(NULL);
 
 	if(track > c->maxConn * THOLD) c->increasePool++;

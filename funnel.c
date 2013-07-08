@@ -1,19 +1,21 @@
 #include "funnel.h"
 
-conn *handleConn; 
+conn handleConn[4096]; 
 int maxConn = 0;
 
-void * processRequest(void *data) {
+void * processRequest (void *data) {
 	int sock = *((int *)(data));
 	LOGD(0, "Inside new thread", sock);
-	maxConn = handleRequest(sock, handleConn, maxConn);
+	int curVal = handleRequest(sock, handleConn, maxConn);
+	if(curVal >= 0) maxConn = curVal;
 	LOGD(0, "Thread has ended", maxConn);
 	pthread_exit(NULL);
 }
 
-void * refreshConn(void *ptr) {
+void * refreshConn (void *ptr) {
 	while(1) {
-		if(handleConn == NULL || maxConn <= 0)  continue;
+		sleep(1);
+		if(maxConn <= 0)  continue;
 		refresher(handleConn, maxConn);
 	}
 	pthread_exit(NULL);
@@ -24,7 +26,7 @@ int main() {
 	struct sockaddr_in clientAddr;
 	pthread_t thread, refresh;
 
-	handleConn = (conn *) malloc (sizeof(hConnPool));
+	//handleConn = (conn *) malloc (sizeof(hConnPool));
 
 	/* Refresh connections. */
 	pthread_create (&refresh, NULL, refreshConn, 0);

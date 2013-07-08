@@ -40,18 +40,19 @@ void sslDisconnect (connection *c) {
 }
 
 /* Read all available text from the connection. */
-char *sslRead (connection *c) {
+int sslRead (connection *c, char rc[]) {
   const int readSize = 4096;
-  char *rc = NULL, *buffer;
-  int received, count = 0;
-  buffer = (char *) malloc (readSize * sizeof(char));
+  char buffer[4096];
+  int received;//, count = 0;
+  //buffer = (char *) malloc (readSize * sizeof(char));
 
   if (c) {
       while (1) {
-          if (!rc) rc = malloc (readSize * sizeof (char) + 1);
-          else rc = realloc (rc, (count + 1) * readSize * sizeof (char) + 1);
+          //if (!rc) rc = malloc (readSize * sizeof (char) + 1);
+          //else rc = realloc (rc, (count + 1) * readSize * sizeof (char) + 1);
 
           received = SSL_read (c->sslHandle, buffer, readSize);
+		  if(received < 0) return received;
           
 		  if (received < readSize) {
 			  buffer[received] = 0;
@@ -60,27 +61,27 @@ char *sslRead (connection *c) {
 		  }
 
           if (received > 0) strcat (rc, buffer);
-          count++;
+          //count++;
         }
   }
 
-  free(buffer); 
+  //free(buffer); 
   /* Fixed cleanup routine.
   char * out; 
   out = (char *) malloc (sizeof(char) * strlen(rc) + 1);
   strcpy(out, rc); free(rc);*/
 
-  return rc;
+  return 1;
 }
 
 /* Write text to the connection. */
-void sslWrite (connection *c, char *text) {
+int sslWrite (connection *c, char *text) {
   if (c) {
-	  SSL_write (c->sslHandle, text, strlen (text));
 	  LOGV(0, "Sent to SSL connection", text);
-	  free(text);
-  }
-  else LOG(0, "Connection doesnot exist.");
+	  return SSL_write (c->sslHandle, text, strlen (text));
+	  //free(text);
+  } else LOG(0, "Connection doesnot exist.");
+  return -1;
 }
 
 /* Test Module. 
