@@ -1,9 +1,10 @@
 #include "tcp.h"
 
 int error(char *msg) {
-	perror(msg); exit(1);
+	perror(msg); //exit(1);
 }
 
+/* No error checking whatsoever. But don't think its required. */
 int tcpCreate (int portno) {
 	int parentfd, optval = 1;
 	struct sockaddr_in serveraddr;
@@ -32,8 +33,9 @@ int tcpConnect (char *ser, int port) {
 	host = gethostbyname (ser);
 	handle = socket (AF_INET, SOCK_STREAM, 0);
 	if (handle == -1) {
-		perror ("Socket");
-	  	handle = 0;
+		/* Do not raise error. Silently fail. */	
+		LOGV(9, "TCP Socket Error : ", ser); return -1;
+		/* perror ("Socket"); handle = 0; */
 	}
 	else {
 		server.sin_family = AF_INET;
@@ -43,8 +45,9 @@ int tcpConnect (char *ser, int port) {
 
 		error = connect (handle, (struct sockaddr *) &server, sizeof (struct sockaddr));
 		if (error == -1) {
-			perror ("Connect");
-		 	handle = 0;
+			/* Do not raise error. Let it silently fail. */
+			LOGV(9, "TCP Socket Error : ", ser); return -1;
+			/* perror ("Connect"); handle = 0; */
 		} else setsockopt(handle, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(int));
 	}
 	return handle;
@@ -54,8 +57,6 @@ int tcpRead (int sock, char rc[]) {
   	const int readSize = 4096;
   	char buffer[4096];
 	int received, count = 0, len = 0;
-	//buffer = (char *) malloc (sizeof(char) * (readSize + 1));
-  	//LOGD(0, "Inside tcpRead", sock);
 	
 	int flags = fcntl(sock, F_GETFL, 0);
 	fcntl(sock, F_SETFL, flags | O_NONBLOCK);
@@ -68,27 +69,16 @@ int tcpRead (int sock, char rc[]) {
 	
 			len = strlen(buffer);
 			count += (len < (readSize - 1)) ? len : readSize;
-			LOGD(0, "************* Current Count : ", count);
-			//if (!rc) rc = (char *) malloc ( (count + 1) * sizeof (char) );
-          	//else rc = (char *) realloc ( rc, (count + 1) * sizeof (char) );
 
           	if (received > 0) strcat (rc, buffer);
 			else if(count > 0) break; usleep(500);
         }
     }
 	
-	/* Before using cleanup routine. 
-	LOGV(0, "Read : ", rc);
-	char *out;
-	out = (char *) malloc (count * sizeof(char) + 1);
-	strcpy(out, rc); free(rc); */
-	
-	//free(buffer); 
 	return 1;
 }
 
 int tcpWrite (int sock, char *text) {
 	if (sock) return write (sock, text, strlen (text));
 	return -1;
-	//free(text);
 }

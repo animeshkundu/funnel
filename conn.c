@@ -21,27 +21,23 @@ int exists (conn hconn[], int maxConn, char host[], int port) {
 		}
 	} else return -1;
 
+	/* Redundant. */
 	return -1;
 }
 
 void refresher(conn hconn[], int maxConn) {
 	if (maxConn <= 0) {
-	   usleep(5000);
-   	   return;
+	   usleep(5000); return;
 	}
 	
 	int cur = 0, inCur, curTime;
 	while(cur < maxConn) {
+
 		/* Loop through connection pool looking to delete connections. */
 		inCur = 0; curTime = time(NULL);
 		while(inCur < hconn[cur]->maxConn) {
-			/*if(strlen(sslRead(hconn[cur]->connPool[inCur])) < 0 && hconn[cur]->connStatus[inCur] == 0) {
-				hconn[cur]->connStatus[inCur] = 1;
-				sslDisconnect(hconn[cur]->connPool[inCur]);
-				hconn[cur]->connPool[inCur] = sslConnect(hconn[cur]->host, hconn[cur]->port);
-				LOGD(5, "Reconnected disconnected connection", inCur);
-				hconn[cur]->connStatus[inCur] = 0;
-			}*/
+
+			/* Alive connection check should be handled while reading or writing. NOT HERE. */
 
 			if( (curTime - hconn[cur]->connTime[inCur]) > TIMEOUT )
 				hconn[cur]->decreasePool++;
@@ -68,11 +64,13 @@ void refresher(conn hconn[], int maxConn) {
 
 conn newConn(char host[], int port) {
 	conn c;
+	
 	c = (conn) malloc (sizeof(hConnPool));
-	//c->host = (char *) malloc ((strlen(host) + 1) * sizeof(char));
 	strcpy(c->host, host);
 	c->port = port;
+	
 	init(c);
+
 	LOG(0, "Created new connection.");
 	return c;
 }
@@ -110,6 +108,7 @@ void addConn(conn c) {
 }
 
 int deleteConn(conn c) {
+	/* Limit lower boundary. */
 	if(c->maxConn > MINCONN && 0 == c->connStatus[c->maxConn]) {
 		c->maxConn--;
 		LOGV(6, "Deleted Connection", c->host);
@@ -121,23 +120,23 @@ int deleteConn(conn c) {
 int getConn(conn c) {
 	int track = 0, cur = c->curConn;
 	
-	//while(c->getConnLock > 0) usleep(500);
-	//c->getConnLock = 1;
+	/* Function level locks, not a good idea without sufficient proof. */
+	/* while(c->getConnLock > 0) usleep(500);
+	c->getConnLock = 1; */
 
 	while(c->connStatus[cur] > 0) {
 		cur = (cur >= c->maxConn - 1) ? 0 : cur + 1;
 		track++;
 
-		/* Explicit fallback. */
+		/* Explicit fallback. If this is happening frequently, there is a problem with refresher function. */
 		if(track > (c->maxConn * 3 * THOLD)) {
 			addConn(c); track = 0;
-			LOGD(6, "Forced Increase of connection pool. Max : ", c->maxConn);
+			LOGD(10, "Notice : Forced Increase of connection pool. Max : ", c->maxConn);
 		}
 	}
 
-	c->connStatus[cur] = 1; 
-	//c->getConnLock = 0;
-	c->connTime[cur] = time(NULL);
+	c->connStatus[cur] = 1; c->connTime[cur] = time(NULL);
+	/* c->getConnLock = 0; */
 
 	if(track > c->maxConn * THOLD) c->increasePool++;
 	LOGD(0, "Current Track : ", track);
