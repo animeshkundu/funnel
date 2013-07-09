@@ -4,8 +4,9 @@ int jsmnCount = 0;
 
 int reconnect(conn c, int sock) {
 	sslDisconnect(c->connPool[sock]);
-	c->connPool[sock] = sslConnect(c->host, c->port);
-	LOGD(6, "Reconnected Disconnected connection : ", c->connPool[sock]->socket);
+	connection *tmp = sslConnect(c->host, c->port);
+	c->connPool[sock] = tmp;
+	LOGD(6, "Reconnected Disconnected connection : ", tmp->socket);
 	return 1;
 }
 
@@ -32,8 +33,8 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	
 	//free(tmp); free(request);
 	
-	LOGV(0, "Host : ", host);
-	LOGD(0, "Port : ", port);
+	LOGV(6, "Host : ", host);
+	LOGD(6, "Port : ", port);
 	LOGV(0, "Data : ", data); LOG(0, "");
 	cur = exists(hconn, maxConn, host, port);
 	LOGD(0, "Connection Exists : ", cur);
@@ -125,7 +126,7 @@ int getToken(const char * js, char data[]) {
 		}
 		data[k++] = js[i];
 	}
-	data[k] = '\0';	
+	data[k] = 0;	
 	/*strncpy (data, js+jsmnTok[jsmnCount].start, (jsmnTok[jsmnCount].end - jsmnTok[jsmnCount].start));*/
 	jsmnCount++;
 

@@ -97,19 +97,22 @@ int init(conn c) {
 }
 
 void addConn(conn c) {
+	/* Limit upper boundary. */
+	if(c->maxConn >= MAXCONN) return;
+
 	int curMax = c->maxConn;
 	c->connPool[curMax] = sslConnect(c->host, c->port);
 	c->connStatus[curMax] = 0;
 	c->connTime[curMax] = time(NULL);
 
 	c->maxConn++;
-	LOGV(5, "Added Connection", c->host);
+	LOGD(6, "Added Connection", c->maxConn);
 }
 
 int deleteConn(conn c) {
-	if(0 == c->connStatus[c->maxConn]) {
+	if(c->maxConn > MINCONN && 0 == c->connStatus[c->maxConn]) {
 		c->maxConn--;
-		LOGV(5, "Deleted Connection", c->host);
+		LOGV(6, "Deleted Connection", c->host);
 		/* Free or not to free, that is the question. */
 		return 1;
 	} else return -1;
@@ -127,8 +130,8 @@ int getConn(conn c) {
 
 		/* Explicit fallback. */
 		if(track > (c->maxConn * 3 * THOLD)) {
-			LOGD(6, "Forced Increase of connection pool. Track : ", track);
 			addConn(c); track = 0;
+			LOGD(6, "Forced Increase of connection pool. Max : ", c->maxConn);
 		}
 	}
 
@@ -144,7 +147,7 @@ int getConn(conn c) {
 	if(c->connPool[cur] < 0) {
 		sslDisconnect(c->connPool[cur]);
 		c->connPool[cur] = sslConnect(c->host, c->port);
-		LOGD(0, "Reconnected disconnected connection : ", cur);
+		LOGD(6, "Reconnected disconnected connection : ", cur);
 	}
 
 	return cur;
@@ -159,5 +162,3 @@ int freeConn(conn c, int p) {
 
 	return wastedTime;
 }
-
-
