@@ -1,7 +1,7 @@
 #include "tcp.h"
 
 int error(char *msg) {
-	perror(msg); //exit(1);
+	perror(msg); return -1;
 }
 
 /* No error checking whatsoever. But don't think its required. */
@@ -51,6 +51,10 @@ int tcpConnect (char *ser, int port) {
 		} else setsockopt(handle, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(int));
 	}
 	return handle;
+}
+
+void tcpDisconnect(int sock) {
+	if(sock) close(sock);
 }
 
 int tcpRead (int sock, char rc[]) {

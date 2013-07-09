@@ -24,5 +24,6 @@ int tcpCreate(int);
 int tcpConnect (char *, int);
 int tcpRead (int, char[]);
 int tcpWrite(int, char *);
+void tcpDisconnect(int);
 
 #endif

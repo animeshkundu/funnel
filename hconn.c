@@ -3,57 +3,31 @@
 int jsmnCount = 0;
 
 int reconnect(conn c, int sock) {
-	sslDisconnect(c->connPool[sock]);
-	connection *tmp = sslConnect(c->host, c->port);
-	c->connPool[sock] = tmp;
-	LOGD(6, "Reconnected Disconnected connection : ", tmp->socket);
+	
+	if(443 == c->port) {
+		sslDisconnect(c->connPool[sock]);
+		connection *tmp = sslConnect(c->host, c->port);
+		c->connPool[sock] = tmp;
+		LOGD(6, "Reconnected Disconnected connection : ", tmp->socket);
+	} else {
+		tcpDisconnect(c->connPool[sock]);
+		int tmp = tcpConnect(c->host, c->port);
+		c->tcpConnPool[sock] = tmp;
+		LOGD(6, "Reconnected Disconnected connection : ", tmp);
+	}
+
 	return 1;
 }
 
-int handleRequest(int cSock, conn hconn[], int maxConn) {
-	int cur, sockNo, port;
+int handleSSL(conn hconn[], int cur, char data[], char response[]) {
+	int sockNo;
 	connection *sock;
-	char request[40960], response[40960], host[1024], data[40960], tmp[40960];
 
-	LOG(0, "Inside handleRequest.");
-	if(tcpRead(cSock, request) < 0) { close(cSock); return -1; }
-
-	processRead(request);
-	LOGV(6, "Request : ", request);
-	while(getToken(request, tmp)) {
-		/*if(tmp == NULL) {
-			LOGV(10, "JSON String not properly formatted.", request);
-			free(tmp); free(request);
-			return maxConn;
-		}*/
-		if(!strcmp("host", tmp)) getToken(request, host);
-		if(!strcmp("port", tmp)) { getToken(request, tmp); port = atoi(tmp); }
-		if(!strcmp("data", tmp)) getToken(request, data);
-	} 
-	
-	//free(tmp); free(request);
-	
-	LOGV(0, "Host : ", host);
-	LOGD(0, "Port : ", port);
-	LOGV(0, "Data : ", data); LOG(0, "");
-	cur = exists(hconn, maxConn, host, port);
-	LOGD(0, "Connection Exists : ", cur);
-
-	if(cur < 0) {
-		//hconn = (NULL == hconn) ? ((conn *) malloc (sizeof(hConnPool))) : ((conn *) realloc (hconn, (sizeof(hConnPool) * (maxConn + 1))));
-		//LOG(0, "Malloced or realloced hconn");
-		hconn[maxConn] = newConn(host, port);
-		LOGD(0, "Created new hconn", hconn[maxConn]->connPool[0]->socket);
-		cur = maxConn; maxConn++;
-	}
-	
 	sockNo = getConn(hconn[cur]);
 	LOGD(0, "Socket No : ", sockNo);
 	sock = hconn[cur]->connPool[sockNo];
 	
 	if(sock < 0) {
-		/*sslDisconnect(hconn[cur]->connPool[sockNo]);
-		hconn[cur]->connPool[sockNo] = sslConnect(hconn[cur]->host, hconn[cur]->port);*/
 		reconnect(hconn[cur], sockNo);
 		sock = hconn[cur]->connPool[sockNo];
 	}
@@ -65,29 +39,96 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 		reconnect(hconn[cur], sockNo);
 		sock = hconn[cur]->connPool[sockNo];
 		LOGD(6, "Socket : ", sock->socket);
-		if(sslWrite(sock, data) < 0) { freeConn(hconn[cur], cur); close(cSock); return -1; }
+		if(sslWrite(sock, data) < 0) { freeConn(hconn[cur], cur); return -1; }
 	}
 
-	if(sslRead(sock, response) < 0) { freeConn(hconn[cur], cur); close(cSock); return -1; }
+	if(sslRead(sock, response) < 0) { freeConn(hconn[cur], cur); return -1; }
 
-	LOGV(5, "Response : ", response);
+	return 1;
+}
+
+int handleTCP(conn hconn[], int cur, char data[], char response[]) {
+	int sockNo, sock;
+	
+	sockNo = getConn(hconn[cur]);
+	LOGD(0, "Socket No : ", sockNo);
+	sock = hconn[cur]->tcpConnPool[sockNo];
+	
+	if(sock < 0) {
+		reconnect(hconn[cur], sockNo);
+		sock = hconn[cur]->tcpConnPool[sockNo];
+	}
+
+	LOGD(0, "Got Socket : ", sock);
+	LOGV(5, "Request sent to Bank.", data);
+	
+	if (tcpWrite(sock, data) < 0) {
+		reconnect(hconn[cur], sockNo);
+		sock = hconn[cur]->tcpConnPool[sockNo];
+		LOGD(6, "Socket : ", sock);
+		if(tcpWrite(sock, data) < 0) { freeConn(hconn[cur], cur); return -1; }
+	}
+
+	if(tcpRead(sock, response) < 0) { freeConn(hconn[cur], cur); return -1; }
+
+	return 1;
+}
+
+int handleRequest(int cSock, conn hconn[], int maxConn) {
+	int cur, port;
+	char request[40960], response[40960], host[1024], data[40960], tmp[40960];
+
+	LOG(0, "Inside handleRequest.");
+
+	if(tcpRead(cSock, request) < 0) { close(cSock); return -1; }
+
+	processRead(request);
+
+	LOGV(6, "Request : ", request);
+
+	while(getToken(request, tmp)) {
+		if(!strcmp("host", tmp)) getToken(request, host);
+		if(!strcmp("port", tmp)) { getToken(request, tmp); port = atoi(tmp); }
+		if(!strcmp("data", tmp)) getToken(request, data);
+	} 
+	
+	LOGV(0, "Host : ", host);
+	LOGD(0, "Port : ", port);
+	LOGV(0, "Data : ", data);
+	cur = exists(hconn, maxConn, host, port);
+
+	LOGD(0, "Connection Exists : ", cur);
+
+	if(cur < 0) {
+		if(443 == port) {
+			hconn[maxConn] = newSslConn(host, port);
+			LOGD(0, "Created new hconn", hconn[maxConn]->connPool[0]->socket);
+		} else {
+			hconn[maxConn] = newTcpConn(host, port);
+			LOGD(0, "Created new hconn", hconn[maxConn]->tcpConnPool[0]);
+		}
+		cur = maxConn; maxConn++;
+	}
+	
+	/* Handle both types of connections. */
+	if(443 == hconn[cur]->port) {
+		if(handleSSL(hconn, cur, data, response) < 0) { 
+			close(cSock); return -1;
+		}
+	} else if(handleTCP(hconn, cur, data, response) < 0) {
+		close(cSock); return -1;
+	}
+
+	LOGV(6, "Response : ", response);
 	strcat(response, "\r\n");
 	tcpWrite(cSock, response);
 	LOG(0, "Sent response to client.");
 
-	//sslDisconnect(hconn[cur]->connPool[sockNo]);
-	//hconn[cur]->connPool[sockNo] = sslConnect(hconn[cur]->host, hconn[cur]->port);
-
 	int timeTaken = freeConn(hconn[cur], cur);
 	LOGD(0, "Time taken : ", timeTaken);
 	
-	//shutdown(cSock, SHUT_WR);	
-	//while(strlen(tcpRead(cSock)) > 0) usleep(500);
-
 	/* Allow the socket to drain. */
 	usleep(500000); close(cSock);
-
-	//free(host); free(response);
 	return maxConn;
 }
 
@@ -102,6 +143,7 @@ int processRead(char req[]) {
 }
 
 int getToken(const char * js, char data[]) {
+	
 	if(0 == jsmnCount) {
 		jsmn_init(&jsmnP);
 		jsmnR = jsmn_parse(&jsmnP, js, jsmnTok, 10);
@@ -115,9 +157,7 @@ int getToken(const char * js, char data[]) {
 		return 0;
 	}
 
-	//char * data;
 	int i, k=0;
-	//data = (char *) malloc ( sizeof(char) * (jsmnTok[jsmnCount].end - jsmnTok[jsmnCount].start + 1) );
 	for(i = jsmnTok[jsmnCount].start; i<jsmnTok[jsmnCount].end; i++) {
 		if (js[i] == 92) {
 			if (js[i+1] == 47 || js[i+1] == 92) data[k++] = js[i+1]; 
@@ -128,9 +168,6 @@ int getToken(const char * js, char data[]) {
 		}
 		data[k++] = js[i];
 	}
-	data[k] = 0;	
-	/*strncpy (data, js+jsmnTok[jsmnCount].start, (jsmnTok[jsmnCount].end - jsmnTok[jsmnCount].start));*/
-	jsmnCount++;
 
-	return 1;
+	data[k] = 0; jsmnCount++; return 1;
 }

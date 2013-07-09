@@ -6,10 +6,11 @@
 #define MAXCONN 20
 #define MINCONN 2
 #define THOLD 1
-#define TIMEOUT 20
+#define TIMEOUT 180
 
 typedef struct {
 	connection *connPool[MAXCONN];
+	int tcpConnPool[MAXCONN];
 	int connStatus[MAXCONN];
 	int connTime[MAXCONN];
 	int maxConn;
@@ -26,8 +27,9 @@ typedef struct {
 
 int check(conn, char *, int);
 int exists (conn *, int, char *, int);
-conn newConn(char *, int);
-int init(conn);
+conn newSslConn(char *, int);
+conn newTcpConn(char *, int);
+int initSsl(conn);
 void addConn(conn);
 int deleteConn(conn);
 int getConn(conn);

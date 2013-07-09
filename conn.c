@@ -62,20 +62,43 @@ void refresher(conn hconn[], int maxConn) {
 	}	
 }
 
-conn newConn(char host[], int port) {
+conn newTcpConn(char host[], int port) {
+	int i; conn c;
+
+	c = (conn) malloc (sizeof(hConnPool));
+	strcpy(c->host, host);
+	c->port = port;
+
+	for(i=0; i<MINCONN; i++) {
+		c->tcpConnPool[i] = tcpConnect(c->host, c->port);
+		c->connStatus[i] = 0;
+		c->connTime[i] = time(NULL);
+		LOGD(0, "Created TCP Connection : ", c->tcpConnPool[i]);
+	}
+
+	c->maxConn = MINCONN;
+	c->curConn = 0;
+	c->increasePool = 0;
+	c->decreasePool = 0;
+	c->getConnLock = 0;
+
+	return c;
+}
+
+conn newSslConn(char host[], int port) {
 	conn c;
 	
 	c = (conn) malloc (sizeof(hConnPool));
 	strcpy(c->host, host);
 	c->port = port;
 	
-	init(c);
+	initSsl(c);
 
 	LOG(0, "Created new connection.");
 	return c;
 }
 
-int init(conn c) {
+int initSsl(conn c) {
 	int i;
 
 	for(i=0; i<MINCONN; i++) {
@@ -99,7 +122,10 @@ void addConn(conn c) {
 	if(c->maxConn >= MAXCONN) return;
 
 	int curMax = c->maxConn;
-	c->connPool[curMax] = sslConnect(c->host, c->port);
+
+	if(443 == c->port) c->connPool[curMax] = sslConnect(c->host, c->port);
+	else c->tcpConnPool[curMax] = tcpConnect(c->host, c->port);
+
 	c->connStatus[curMax] = 0;
 	c->connTime[curMax] = time(NULL);
 
@@ -109,7 +135,7 @@ void addConn(conn c) {
 
 int deleteConn(conn c) {
 	/* Limit lower boundary. */
-	if(c->maxConn > MINCONN && 0 == c->connStatus[c->maxConn]) {
+	if(c->maxConn > MINCONN && ((443 == c->port && 0 == c->connStatus[c->maxConn]) || 0 == c->tcpConnPool[c->maxConn])) {
 		c->maxConn--;
 		LOGV(6, "Deleted Connection", c->host);
 		/* Free or not to free, that is the question. */
@@ -121,8 +147,8 @@ int getConn(conn c) {
 	int track = 0, cur = c->curConn;
 	
 	/* Function level locks, not a good idea without sufficient proof. */
-	/* while(c->getConnLock > 0) usleep(500);
-	c->getConnLock = 1; */
+	while(c->getConnLock > 0) usleep(500);
+	c->getConnLock = 1;
 
 	while(c->connStatus[cur] > 0) {
 		cur = (cur >= c->maxConn - 1) ? 0 : cur + 1;
@@ -136,7 +162,7 @@ int getConn(conn c) {
 	}
 
 	c->connStatus[cur] = 1; c->connTime[cur] = time(NULL);
-	/* c->getConnLock = 0; */
+	c->getConnLock = 0;
 
 	if(track > c->maxConn * THOLD) c->increasePool++;
 	LOGD(0, "Current Track : ", track);
@@ -144,8 +170,13 @@ int getConn(conn c) {
 	c->curConn = (cur >= c->maxConn - 1) ? 0 : cur + 1;
 
 	if(c->connPool[cur] < 0) {
-		sslDisconnect(c->connPool[cur]);
-		c->connPool[cur] = sslConnect(c->host, c->port);
+		if(443 == c->port) {
+			sslDisconnect(c->connPool[cur]);
+			c->connPool[cur] = sslConnect(c->host, c->port);
+		} else {
+			tcpDisconnect(c->tcpConnPool[cur]);
+			c->tcpConnPool[cur] = tcpConnect(c->host, c->port);
+		}
 		LOGD(6, "Reconnected disconnected connection : ", cur);
 	}
 
