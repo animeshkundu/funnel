@@ -35,7 +35,6 @@ int tcpConnect (char *ser, int port) {
 	if (handle == -1) {
 		/* Do not raise error. Silently fail. */	
 		LOGV(9, "TCP Socket Error : ", ser); return -1;
-		/* perror ("Socket"); handle = 0; */
 	}
 	else {
 		server.sin_family = AF_INET;
@@ -47,7 +46,6 @@ int tcpConnect (char *ser, int port) {
 		if (error == -1) {
 			/* Do not raise error. Let it silently fail. */
 			LOGV(9, "TCP Socket Error : ", ser); return -1;
-			/* perror ("Connect"); handle = 0; */
 		} else setsockopt(handle, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(int));
 	}
 	return handle;
