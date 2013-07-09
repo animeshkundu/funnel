@@ -19,7 +19,7 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	if(tcpRead(cSock, request) < 0) { close(cSock); return -1; }
 
 	processRead(request);
-	LOGV(0, "Request : ", request);
+	LOGV(6, "Request : ", request);
 	while(getToken(request, tmp)) {
 		/*if(tmp == NULL) {
 			LOGV(10, "JSON String not properly formatted.", request);
@@ -33,8 +33,8 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	
 	//free(tmp); free(request);
 	
-	LOGV(6, "Host : ", host);
-	LOGD(6, "Port : ", port);
+	LOGV(0, "Host : ", host);
+	LOGD(0, "Port : ", port);
 	LOGV(0, "Data : ", data); LOG(0, "");
 	cur = exists(hconn, maxConn, host, port);
 	LOGD(0, "Connection Exists : ", cur);
@@ -83,7 +83,9 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	
 	//shutdown(cSock, SHUT_WR);	
 	//while(strlen(tcpRead(cSock)) > 0) usleep(500);
-	usleep(500); close(cSock);
+
+	/* Allow the socket to drain. */
+	usleep(500000); close(cSock);
 
 	//free(host); free(response);
 	return maxConn;
