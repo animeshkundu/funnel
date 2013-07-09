@@ -2,9 +2,7 @@
 
 #include "jsmn.h"
 
-/**
- * Allocates a fresh unused token from the token pull.
- */
+/* Allocates a fresh unused token from the token pull. */
 static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser, 
                 jsmntok_t *tokens, size_t num_tokens) {
         jsmntok_t *tok;
@@ -20,9 +18,7 @@ static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser,
         return tok;
 }
 
-/**
- * Fills token type and boundaries.
- */
+/* Fills token type and boundaries. */
 static void jsmn_fill_token(jsmntok_t *token, jsmntype_t type, 
                             int start, int end) {
         token->type = type;
@@ -31,9 +27,7 @@ static void jsmn_fill_token(jsmntok_t *token, jsmntype_t type,
         token->size = 0;
 }
 
-/**
- * Fills next available token with JSON primitive.
- */
+/* Fills next available token with JSON primitive. */
 static jsmnerr_t jsmn_parse_primitive(jsmn_parser *parser, const char *js,
                 jsmntok_t *tokens, size_t num_tokens) {
         jsmntok_t *token;
@@ -76,9 +70,7 @@ found:
         return JSMN_SUCCESS;
 }
 
-/**
- * Filsl next token with JSON string.
- */
+/* Filsl next token with JSON string. */
 static jsmnerr_t jsmn_parse_string(jsmn_parser *parser, const char *js,
                 jsmntok_t *tokens, size_t num_tokens) {
         jsmntok_t *token;
@@ -128,9 +120,7 @@ static jsmnerr_t jsmn_parse_string(jsmn_parser *parser, const char *js,
         return JSMN_ERROR_PART;
 }
 
-/**
- * Parse JSON string and fill tokens.
- */
+/* Parse JSON string and fill tokens. */
 jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, jsmntok_t *tokens, 
                 unsigned int num_tokens) {
         jsmnerr_t r;
@@ -243,10 +233,7 @@ jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, jsmntok_t *tokens,
         return JSMN_SUCCESS;
 }
 
-/**
- * Creates a new parser based over a given  buffer with an array of tokens 
- * available.
- */
+/* Creates a new parser based over a given  buffer with an array of tokens available. */
 void jsmn_init(jsmn_parser *parser) {
         parser->pos = 0;
         parser->toknext = 0;

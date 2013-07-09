@@ -2,7 +2,7 @@
 #include "jsmn.h"
 
 #ifndef __HCONN_H_
-#define __HCONN_H_
+#define __HCONN_H_ 1
 
 jsmn_parser jsmnP;
 jsmntok_t jsmnTok[1000];

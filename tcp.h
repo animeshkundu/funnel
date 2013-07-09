@@ -12,7 +12,7 @@
 #include <fcntl.h>
 
 #ifndef __TCP_H_
-#define __TCP_H_
+#define __TCP_H_ 1
 
 #define LEVEL 6
 #define LOG(n, msg) if(n >= LEVEL) printf("\n[ %s ] - [ %s : %s : %d ]\t%s\n", __TIME__, __FILE__,__func__, __LINE__, msg)

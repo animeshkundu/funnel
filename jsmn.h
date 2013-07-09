@@ -1,5 +1,5 @@
 #ifndef __JSMN_H_
-#define __JSMN_H_
+#define __JSMN_H_ 1
 
 /**
  * JSON type identifier. Basic types are:
