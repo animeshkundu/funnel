@@ -3,7 +3,7 @@
 #ifndef __CONN_H_
 #define __CONN_H_ 1
 
-#define MAXCONN 	20
+#define MAXCONN 	50
 #define MINCONN 	2
 #define THOLD 		1
 #define TIMEOUT 	1800

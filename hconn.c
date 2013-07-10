@@ -10,10 +10,10 @@ int reconnect(conn c, int sock) {
 		c->connPool[sock] = tmp;
 		LOGD(6, "Reconnected Disconnected connection : ", tmp->socket);
 	} else {
-		tcpDisconnect(c->connPool[sock]);
+		close(c->tcpConnPool[sock]);
 		int tmp = tcpConnect(c->host, c->port);
 		c->tcpConnPool[sock] = tmp;
-		LOGD(6, "Reconnected Disconnected connection : ", tmp);
+		LOGD(6, "Reconnected Disconnected connection : ", (int) tmp);
 	}
 
 	return 1;
@@ -22,7 +22,7 @@ int reconnect(conn c, int sock) {
 int handleSSL(conn hconn[], int cur, char data[], char response[]) {
 	int sockNo;
 	connection *sock;
-
+	
 	sockNo = getConn(hconn[cur]);
 	LOGD(0, "Socket No : ", sockNo);
 	sock = hconn[cur]->connPool[sockNo];
@@ -35,14 +35,14 @@ int handleSSL(conn hconn[], int cur, char data[], char response[]) {
 	LOGD(0, "Got Socket : ", sock->socket);
 	LOGV(5, "Request sent to Bank.", data);
 	
-	if (sslWrite(sock, data) < 0) {
+	if (sslWrite(sock, data) <= 0) {
 		reconnect(hconn[cur], sockNo);
 		sock = hconn[cur]->connPool[sockNo];
 		LOGD(6, "Socket : ", sock->socket);
-		if(sslWrite(sock, data) < 0) { freeConn(hconn[cur], cur); return -1; }
+		if(sslWrite(sock, data) <= 0) { freeConn(hconn[cur], cur); return -1; }
 	}
 
-	if(sslRead(sock, response) < 0) { freeConn(hconn[cur], cur); return -1; }
+	if(sslRead(sock, response) <= 0) { freeConn(hconn[cur], cur); return -1; }
 
 	return 1;
 }
@@ -62,6 +62,7 @@ int handleTCP(conn hconn[], int cur, char data[], char response[]) {
 	LOGD(0, "Got Socket : ", sock);
 	LOGV(5, "Request sent to Bank.", data);
 	
+	/* Reconnect if neccessary. */
 	if (tcpWrite(sock, data) < 0) {
 		reconnect(hconn[cur], sockNo);
 		sock = hconn[cur]->tcpConnPool[sockNo];
@@ -120,7 +121,7 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	}
 
 	LOGV(6, "Response : ", response);
-	strcat(response, "\r\n");
+	/* strcat(response, "\r\n"); */
 	tcpWrite(cSock, response);
 	LOG(0, "Sent response to client.");
 
@@ -128,17 +129,15 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	LOGD(0, "Time taken : ", timeTaken);
 	
 	/* Allow the socket to drain. */
-	usleep(500000); close(cSock);
+	usleep(50000); close(cSock);
 	return maxConn;
 }
 
 int processRead(char req[]) {
 	int i=0, j=0, len = strlen(req);
 	while(req[i]!='{' && req[i+1]!='"') i++;
-	strncpy(req, req + i, len - i);
-	while(req[len-i+j]!=0) {
-		req[len-i+j] = 0; j++;
-	}
+	if(i < len-i) strncpy(req, req + i, len - i);
+	while(req[len-i+j]!=0) { req[len-i+j] = 0; j++; }
 	return 1;
 }
 

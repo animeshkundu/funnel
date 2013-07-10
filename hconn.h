@@ -1,8 +1,8 @@
-#include "conn.h"
-#include "jsmn.h"
-
 #ifndef __HCONN_H_
 #define __HCONN_H_ 1
+
+#include "conn.h"
+#include "jsmn.h"
 
 jsmn_parser jsmnP;
 jsmntok_t jsmnTok[1000];

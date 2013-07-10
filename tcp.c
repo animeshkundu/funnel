@@ -1,7 +1,7 @@
 #include "tcp.h"
 
-int error(char *msg) {
-	perror(msg); return -1;
+int throwError(char *msg) {
+	perror(msg); exit(1);
 }
 
 /* No error checking whatsoever. But don't think its required. */
@@ -10,7 +10,7 @@ int tcpCreate (int portno) {
 	struct sockaddr_in serveraddr;
 
 	parentfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (parentfd < 0) error("ERROR opening socket");
+	if (parentfd < 0) throwError("ERROR opening socket");
 
 	setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
 	bzero((char *) &serveraddr, sizeof(serveraddr));
@@ -18,10 +18,13 @@ int tcpCreate (int portno) {
 	serveraddr.sin_family = AF_INET;
 	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serveraddr.sin_port = htons((unsigned short)portno);
-    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) 
-	    error("ERROR on binding");
 
-  	if (listen(parentfd, 100) < 0) error("ERROR on listen");
+    if (bind(parentfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) 
+	    throwError("ERROR on binding");
+
+  	if (listen(parentfd, SOMAXCONN) < 0) throwError("ERROR on listen");
+
+	/* Server is stable now. */
 	return parentfd;
 }
 
@@ -52,7 +55,10 @@ int tcpConnect (char *ser, int port) {
 }
 
 void tcpDisconnect(int sock) {
-	if(sock) close(sock);
+	if(sock) {
+		/* Allow socket to drain. */
+		usleep(500); close(sock);
+	}
 }
 
 int tcpRead (int sock, char rc[]) {
@@ -64,7 +70,6 @@ int tcpRead (int sock, char rc[]) {
 	fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 
 	if (sock) {
-		usleep(5000);
       	while (1) {
 			memset(buffer, 0, readSize);
           	received = read(sock, buffer, readSize - 1);

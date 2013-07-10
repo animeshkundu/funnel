@@ -1,5 +1,7 @@
 #include "ssl.h"
 
+static int sslLock = 0;
+
 /* Establish a connection using an SSL layer.  No error handling on this function. */
 /* TODO: Send this to production only after fixing this function. */
 connection *sslConnect (char * server, int port) {
@@ -14,7 +16,11 @@ connection *sslConnect (char * server, int port) {
 		
 		/* Handle error for each of the following functions. */
 		SSL_load_error_strings ();
-		SSL_library_init ();
+
+		while(sslLock > 0) usleep(500);
+		sslLock = 1;
+		SSL_library_init (); /* Stupid function ain't reentrant. */
+		sslLock = 0;
 
 		c->sslContext = SSL_CTX_new (SSLv23_client_method ());
 
@@ -32,9 +38,14 @@ connection *sslConnect (char * server, int port) {
 	return c;
 }
 
+int isOpen (int fd) {
+	if (fcntl(fd, F_GETFD) != -1 || errno != EBADF) return 1;
+	else return 0;
+}
+
 /* Disconnect & free connection struct. */
 void sslDisconnect (connection *c) {
-  	if (c->socket) close (c->socket);
+  	if (isOpen(c->socket)) close (c->socket);
  
   	if (c->sslHandle) {
     	SSL_shutdown (c->sslHandle);
@@ -55,7 +66,7 @@ int sslRead (connection *c, char rc[]) {
   	if (c) {
     	while (1) {
         	received = SSL_read (c->sslHandle, buffer, readSize);
-		  	if(received < 0) return received;
+		  	if(received <= 0) return received;
           
 		  	if (received < readSize) {
 				buffer[received] = 0;
@@ -73,7 +84,7 @@ int sslRead (connection *c, char rc[]) {
 int sslWrite (connection *c, char *text) {
   	if (c) {
 	  	LOGV(0, "Sent to SSL connection", text);
-	  	return SSL_write (c->sslHandle, text, strlen (text));
+	  	return SSL_write (c->sslHandle, text, strlen(text));
   	} else LOG(0, "Connection doesnot exist.");
   	return -1;
 }

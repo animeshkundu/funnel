@@ -174,7 +174,7 @@ int getConn(conn c) {
 			sslDisconnect(c->connPool[cur]);
 			c->connPool[cur] = sslConnect(c->host, c->port);
 		} else {
-			tcpDisconnect(c->tcpConnPool[cur]);
+			close(c->tcpConnPool[cur]);
 			c->tcpConnPool[cur] = tcpConnect(c->host, c->port);
 		}
 		LOGD(6, "Reconnected disconnected connection : ", cur);

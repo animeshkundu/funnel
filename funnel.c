@@ -1,7 +1,7 @@
 #include "funnel.h"
 
-conn handleConn[4096]; 
-int maxConn = 0;
+static conn handleConn[4096]; 
+static int maxConn = 0;
 
 void * processRequest (void *data) {
 	int sock = *((int *)(data));
@@ -22,28 +22,35 @@ void * refreshConn (void *ptr) {
 }
 
 int main() {
+
 	int fd, childfd, clientLen;
 	struct sockaddr_in clientAddr;
 	pthread_t thread, refresh;
 
-	//handleConn = (conn *) malloc (sizeof(hConnPool));
+	/* Handle signals in a separate thread. */
+	signalHandler();
 
 	/* Refresh connections. */
 	pthread_create (&refresh, NULL, refreshConn, 0);
 	pthread_detach (refresh);
 
 	fd = tcpCreate(4321);
+	if (fd < 0) { LOG(10, "Could not create server"); exit(1); }
 	clientLen = sizeof(clientAddr);
+
 	while(1) {
 		childfd = accept(fd, (struct sockaddr *) &clientAddr, &clientLen); 
 		LOGD(0, "Accepted client connection", childfd);
 		if (childfd < 0) {
-			perror("ERROR on accept");
+			LOG(0, "Error on accept.");
 			continue;
+		} else {
+			pthread_create (&thread, NULL, processRequest, (void *) &childfd);
+			pthread_detach (thread);
+			LOG(0, "Created new thread");
 		}
-		pthread_create (&thread, NULL, processRequest, (void *) &childfd);
-		pthread_detach (thread);
-		LOG(0, "Created new thread");
 	}
+
+	close(fd);
 	return 1;
 }
