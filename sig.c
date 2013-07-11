@@ -3,8 +3,17 @@
 void handleSignals(int signo) {
 	switch(signo) {
 		case SIGSEGV: LOG(10, "Received SIGSEGV. Exiting.");
+					  if(freeStruct != NULL && freeCsock > -1) 
+						  freeConn(freeStruct, freeCsock);
+					  
+					  if(freeSock > -1) close(freeSock);
 					  pthread_exit(NULL); break;
+
 		case SIGPIPE: LOG(10, "Received SIGPIPE. Exiting.");
+					  if(freeStruct != NULL && freeCsock > -1) 
+						  freeConn(freeStruct, freeCsock);
+					  
+					  if(freeSock > -1) close(freeSock);
 					  pthread_exit(NULL); break;
 	}
 }

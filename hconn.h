@@ -6,7 +6,9 @@
 
 jsmn_parser jsmnP;
 jsmntok_t jsmnTok[1000];
-int jsmnR, jsmnCount;
+static __thread int jsmnR, jsmnCount;
+static __thread int freeSock, freeCsock;
+static __thread conn freeStruct;
 
 int getToken(const char *, char[]);
 int handleRequest(int, conn *, int);

@@ -1,6 +1,9 @@
 #include "hconn.h"
 
-int jsmnCount = 0;
+static __thread int jsmnCount = 0;
+static __thread int freeSock = -1;
+static __thread int freeCsock = -1;
+static __thread conn freeStruct = NULL;
 
 int reconnect(conn c, int sock) {
 	
@@ -43,11 +46,19 @@ int handleSSL(conn hconn[], int cur, char data[], char response[]) {
 		reconnect(hconn[cur], sockNo);
 		sock = hconn[cur]->connPool[sockNo];
 		LOGD(5, "Socket : ", sock->socket);
-		if(sslWrite(sock, data) <= 0) { freeConn(hconn[cur], sockNo); return -1; }
+		if(sslWrite(sock, data) <= 0) { 
+			freeConn(hconn[cur], sockNo);
+			freeStruct = NULL; freeCsock = -1;
+			return -1; 
+		}
 	}
 
-	if(sslRead(sock, response) <= 0) { freeConn(hconn[cur], sockNo); return -1; }
-
+	if(sslRead(sock, response) <= 0) { 
+		freeConn(hconn[cur], sockNo); 	
+		freeStruct = NULL; freeCsock = -1;
+		return -1; 
+	}
+	
 	return sockNo;
 }
 
@@ -59,7 +70,11 @@ int handleTCP(conn hconn[], int cur, char data[], char response[]) {
 	sock = hconn[cur]->tcpConnPool[sockNo];
 	
 	if(sock < 0) {
-		if(reconnect(hconn[cur], sockNo) < 0) { freeConn(hconn[cur], sockNo); return -1; }
+		if(reconnect(hconn[cur], sockNo) < 0) { 
+			freeConn(hconn[cur], sockNo); 	
+			freeStruct = NULL; freeCsock = -1;
+			return -1; 
+		}
 		sock = hconn[cur]->tcpConnPool[sockNo];
 	}
 
@@ -68,13 +83,25 @@ int handleTCP(conn hconn[], int cur, char data[], char response[]) {
 	
 	/* Reconnect if neccessary. */
 	if (tcpWrite(sock, data) < 0) {
-		if(reconnect(hconn[cur], sockNo) < 0) { freeConn(hconn[cur], sockNo); return -1; }
+		if(reconnect(hconn[cur], sockNo) < 0) { 
+			freeConn(hconn[cur], sockNo); 	
+			freeStruct = NULL; freeCsock = -1;
+			return -1; 
+		}
 		sock = hconn[cur]->tcpConnPool[sockNo];
 		LOGD(6, "Socket : ", sock);
-		if(tcpWrite(sock, data) < 0) { freeConn(hconn[cur], sockNo); return -1; }
+		if(tcpWrite(sock, data) < 0) { 
+			freeConn(hconn[cur], sockNo); 	
+			freeStruct = NULL; freeCsock = -1;
+			return -1; 
+		}
 	}
 
-	if(tcpRead(sock, response) < 0) { freeConn(hconn[cur], sockNo); return -1; }
+	if(tcpRead(sock, response) < 0) { 
+		freeConn(hconn[cur], sockNo); 
+		freeStruct = NULL; freeCsock = -1;
+		return -1; 
+	}
 
 	return sockNo;
 }
@@ -83,14 +110,15 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	int cur, port;
 	char request[40960], response[40960], host[1024], data[40960], tmp[40960];
 
+	freeSock = cSock;
 	LOG(0, "Inside handleRequest.");
 
 	/* Handle signals per thread. */
 	registerSignalHandler();
 
-	if(tcpRead(cSock, request) < 0) { close(cSock); return -1; }
-
-	if(processRead(request) < 0) { close(cSock); return -1; }
+	if(tcpRead(cSock, request) < 0) { close(cSock); freeSock = -1; return -1; }
+	if(strlen(request) == 0) { close(cSock); freeSock = -1; return -1; }
+	if(processRead(request) < 0) { close(cSock); freeSock = -1; return -1; }
 
 	LOGV(6, "Request : ", request);
 
@@ -103,7 +131,10 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	LOGV(0, "Host : ", host);
 	LOGD(0, "Port : ", port);
 	LOGV(0, "Data : ", data);
+
 	cur = exists(hconn, maxConn, host, port);
+	freeStruct = hconn[cur];
+	freeCsock = cur;
 
 	LOGD(0, "Connection Exists : ", cur);
 
@@ -123,13 +154,19 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	if(443 == hconn[cur]->port) retVal = handleSSL(hconn, cur, data, response);
 	else retVal = handleTCP(hconn, cur, data, response);
 
-	if(retVal < 0) { close(cSock); return -1; }
+	if(retVal < 0) { close(cSock); freeSock = 1; return -1; }
 
 	LOGV(6, "Response : ", response);
 	strcat(response, "\r\n"); 
-	if(tcpWrite(cSock, response) < 0) { freeConn(hconn[cur], retVal); close(cSock); return -1; }
+	
+	if(tcpWrite(cSock, response) < 0) { 
+		freeConn(hconn[cur], retVal); 	
+		freeStruct = NULL; freeCsock = -1;
+		close(cSock); freeSock = -1;
+		return -1; 
+	}
+	
 	LOG(0, "Sent response to client.");
-
 	int timeTaken = freeConn(hconn[cur], retVal);
 	LOGD(0, "Time taken : ", timeTaken);
 	
