@@ -21,8 +21,6 @@ void registerSignalHandler() {
 
 	sigaction(SIGPIPE, &act, NULL);
     sigaction(SIGSEGV, &act, NULL);
-
-    //if (r) LOG(9, "Handled SIGSEGV");
 }
 
 void * sig_thread(void *arg) {

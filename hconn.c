@@ -6,12 +6,16 @@ int reconnect(conn c, int sock) {
 	
 	if(443 == c->port) {
 		sslDisconnect(c->connPool[sock]);
+
+		/* Should have error handling. */
 		connection *tmp = sslConnect(c->host, c->port);
+		
 		c->connPool[sock] = tmp;
 		LOGD(5, "Reconnected Disconnected connection : ", tmp->socket);
 	} else {
 		close(c->tcpConnPool[sock]);
 		int tmp = tcpConnect(c->host, c->port);
+		if(tmp < 0) return tmp;
 		c->tcpConnPool[sock] = tmp;
 		LOGD(5, "Reconnected Disconnected connection : ", (int) tmp);
 	}
@@ -55,7 +59,7 @@ int handleTCP(conn hconn[], int cur, char data[], char response[]) {
 	sock = hconn[cur]->tcpConnPool[sockNo];
 	
 	if(sock < 0) {
-		reconnect(hconn[cur], sockNo);
+		if(reconnect(hconn[cur], sockNo) < 0) { freeConn(hconn[cur], cur); return -1; }
 		sock = hconn[cur]->tcpConnPool[sockNo];
 	}
 
@@ -64,7 +68,7 @@ int handleTCP(conn hconn[], int cur, char data[], char response[]) {
 	
 	/* Reconnect if neccessary. */
 	if (tcpWrite(sock, data) < 0) {
-		reconnect(hconn[cur], sockNo);
+		if(reconnect(hconn[cur], sockNo) < 0) { freeConn(hconn[cur], cur); return -1; }
 		sock = hconn[cur]->tcpConnPool[sockNo];
 		LOGD(6, "Socket : ", sock);
 		if(tcpWrite(sock, data) < 0) { freeConn(hconn[cur], cur); return -1; }
@@ -86,7 +90,7 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 
 	if(tcpRead(cSock, request) < 0) { close(cSock); return -1; }
 
-	processRead(request);
+	if(processRead(request) < 0) { close(cSock); return -1; }
 
 	LOGV(6, "Request : ", request);
 
@@ -116,7 +120,7 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	
 	/* Handle both types of connections. */
 	if(443 == hconn[cur]->port) {
-		if(handleSSL(hconn, cur, data, response) < 0) { 
+		if(handleSSL(hconn, cur, data, response) < 0) {
 			close(cSock); return -1;
 		}
 	} else if(handleTCP(hconn, cur, data, response) < 0) {
@@ -125,7 +129,7 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 
 	LOGV(6, "Response : ", response);
 	strcat(response, "\r\n"); 
-	tcpWrite(cSock, response);
+	if(tcpWrite(cSock, response) < 0) { freeConn(hconn[cur], cur); close(cSock); return -1; }
 	LOG(0, "Sent response to client.");
 
 	int timeTaken = freeConn(hconn[cur], cur);
