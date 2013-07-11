@@ -8,12 +8,12 @@ int reconnect(conn c, int sock) {
 		sslDisconnect(c->connPool[sock]);
 		connection *tmp = sslConnect(c->host, c->port);
 		c->connPool[sock] = tmp;
-		LOGD(6, "Reconnected Disconnected connection : ", tmp->socket);
+		LOGD(5, "Reconnected Disconnected connection : ", tmp->socket);
 	} else {
 		close(c->tcpConnPool[sock]);
 		int tmp = tcpConnect(c->host, c->port);
 		c->tcpConnPool[sock] = tmp;
-		LOGD(6, "Reconnected Disconnected connection : ", (int) tmp);
+		LOGD(5, "Reconnected Disconnected connection : ", (int) tmp);
 	}
 
 	return 1;
@@ -38,7 +38,7 @@ int handleSSL(conn hconn[], int cur, char data[], char response[]) {
 	if (sslWrite(sock, data) <= 0) {
 		reconnect(hconn[cur], sockNo);
 		sock = hconn[cur]->connPool[sockNo];
-		LOGD(6, "Socket : ", sock->socket);
+		LOGD(5, "Socket : ", sock->socket);
 		if(sslWrite(sock, data) <= 0) { freeConn(hconn[cur], cur); return -1; }
 	}
 
@@ -81,6 +81,9 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 
 	LOG(0, "Inside handleRequest.");
 
+	/* Handle signals per thread. */
+	registerSignalHandler();
+
 	if(tcpRead(cSock, request) < 0) { close(cSock); return -1; }
 
 	processRead(request);
@@ -121,7 +124,7 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	}
 
 	LOGV(6, "Response : ", response);
-	/* strcat(response, "\r\n"); */
+	strcat(response, "\r\n"); 
 	tcpWrite(cSock, response);
 	LOG(0, "Sent response to client.");
 

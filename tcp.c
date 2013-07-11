@@ -35,7 +35,7 @@ int tcpConnect (char *ser, int port) {
 
 	host = gethostbyname (ser);
 	handle = socket (AF_INET, SOCK_STREAM, 0);
-	if (handle == -1) {
+	if (handle < 0) {
 		/* Do not raise error. Silently fail. */	
 		LOGV(9, "TCP Socket Error : ", ser); return -1;
 	}
@@ -46,7 +46,7 @@ int tcpConnect (char *ser, int port) {
 		bzero (&(server.sin_zero), 8);
 
 		error = connect (handle, (struct sockaddr *) &server, sizeof (struct sockaddr));
-		if (error == -1) {
+		if (error < 0) {
 			/* Do not raise error. Let it silently fail. */
 			LOGV(9, "TCP Socket Error : ", ser); return -1;
 		} else setsockopt(handle, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(int));

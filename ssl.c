@@ -15,10 +15,9 @@ connection *sslConnect (char * server, int port) {
 	if (c->socket) {
 		
 		/* Handle error for each of the following functions. */
-		SSL_load_error_strings ();
-
 		while(sslLock > 0) usleep(500);
 		sslLock = 1;
+		SSL_load_error_strings ();
 		SSL_library_init (); /* Stupid function ain't reentrant. */
 		sslLock = 0;
 

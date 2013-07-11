@@ -28,7 +28,7 @@ int main() {
 	pthread_t thread, refresh;
 
 	/* Handle signals in a separate thread. */
-	signalHandler();
+	//signalHandler();
 
 	/* Refresh connections. */
 	pthread_create (&refresh, NULL, refreshConn, 0);
