@@ -43,12 +43,12 @@ int handleSSL(conn hconn[], int cur, char data[], char response[]) {
 		reconnect(hconn[cur], sockNo);
 		sock = hconn[cur]->connPool[sockNo];
 		LOGD(5, "Socket : ", sock->socket);
-		if(sslWrite(sock, data) <= 0) { freeConn(hconn[cur], cur); return -1; }
+		if(sslWrite(sock, data) <= 0) { freeConn(hconn[cur], sockNo); return -1; }
 	}
 
-	if(sslRead(sock, response) <= 0) { freeConn(hconn[cur], cur); return -1; }
+	if(sslRead(sock, response) <= 0) { freeConn(hconn[cur], sockNo); return -1; }
 
-	return 1;
+	return sockNo;
 }
 
 int handleTCP(conn hconn[], int cur, char data[], char response[]) {
@@ -59,7 +59,7 @@ int handleTCP(conn hconn[], int cur, char data[], char response[]) {
 	sock = hconn[cur]->tcpConnPool[sockNo];
 	
 	if(sock < 0) {
-		if(reconnect(hconn[cur], sockNo) < 0) { freeConn(hconn[cur], cur); return -1; }
+		if(reconnect(hconn[cur], sockNo) < 0) { freeConn(hconn[cur], sockNo); return -1; }
 		sock = hconn[cur]->tcpConnPool[sockNo];
 	}
 
@@ -68,15 +68,15 @@ int handleTCP(conn hconn[], int cur, char data[], char response[]) {
 	
 	/* Reconnect if neccessary. */
 	if (tcpWrite(sock, data) < 0) {
-		if(reconnect(hconn[cur], sockNo) < 0) { freeConn(hconn[cur], cur); return -1; }
+		if(reconnect(hconn[cur], sockNo) < 0) { freeConn(hconn[cur], sockNo); return -1; }
 		sock = hconn[cur]->tcpConnPool[sockNo];
 		LOGD(6, "Socket : ", sock);
-		if(tcpWrite(sock, data) < 0) { freeConn(hconn[cur], cur); return -1; }
+		if(tcpWrite(sock, data) < 0) { freeConn(hconn[cur], sockNo); return -1; }
 	}
 
-	if(tcpRead(sock, response) < 0) { freeConn(hconn[cur], cur); return -1; }
+	if(tcpRead(sock, response) < 0) { freeConn(hconn[cur], sockNo); return -1; }
 
-	return 1;
+	return sockNo;
 }
 
 int handleRequest(int cSock, conn hconn[], int maxConn) {
@@ -118,21 +118,19 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 		cur = maxConn; maxConn++;
 	}
 	
+	int retVal = -1;
 	/* Handle both types of connections. */
-	if(443 == hconn[cur]->port) {
-		if(handleSSL(hconn, cur, data, response) < 0) {
-			close(cSock); return -1;
-		}
-	} else if(handleTCP(hconn, cur, data, response) < 0) {
-		close(cSock); return -1;
-	}
+	if(443 == hconn[cur]->port) retVal = handleSSL(hconn, cur, data, response);
+	else retVal = handleTCP(hconn, cur, data, response);
+
+	if(retVal < 0) { close(cSock); return -1; }
 
 	LOGV(6, "Response : ", response);
 	strcat(response, "\r\n"); 
-	if(tcpWrite(cSock, response) < 0) { freeConn(hconn[cur], cur); close(cSock); return -1; }
+	if(tcpWrite(cSock, response) < 0) { freeConn(hconn[cur], retVal); close(cSock); return -1; }
 	LOG(0, "Sent response to client.");
 
-	int timeTaken = freeConn(hconn[cur], cur);
+	int timeTaken = freeConn(hconn[cur], retVal);
 	LOGD(0, "Time taken : ", timeTaken);
 	
 	/* Allow the socket to drain. */
