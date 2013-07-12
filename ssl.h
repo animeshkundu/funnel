@@ -17,5 +17,6 @@ connection *sslConnect (char *, int);
 void sslDisconnect (connection *);
 int sslRead(connection *, char[]);
 int sslWrite(connection *, char *);
+int initSSL();
 
 #endif

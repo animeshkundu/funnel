@@ -119,8 +119,7 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	if(tcpRead(cSock, request) < 0) { close(cSock); freeSock = -1; return -1; }
 	if(strlen(request) == 0) { close(cSock); freeSock = -1; return -1; }
 	if(processRead(request) < 0) { close(cSock); freeSock = -1; return -1; }
-
-	LOGV(6, "Request : ", request);
+	LOGV(5, "Request : ", request);
 
 	while(getToken(request, tmp)) {
 		if(!strcmp("host", tmp)) getToken(request, host);
@@ -128,9 +127,9 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 		if(!strcmp("data", tmp)) getToken(request, data);
 	} 
 	
-	LOGV(0, "Host : ", host);
-	LOGD(0, "Port : ", port);
-	LOGV(0, "Data : ", data);
+	LOGV(5, "Host : ", host);
+	LOGD(5, "Port : ", port);
+	LOGV(6, "Data : ", data);
 
 	cur = exists(hconn, maxConn, host, port);
 	freeStruct = hconn[cur];

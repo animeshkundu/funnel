@@ -27,8 +27,8 @@ int main() {
 	struct sockaddr_in clientAddr;
 	pthread_t thread, refresh;
 
-	/* Handle signals in a separate thread. */
-	//signalHandler();
+	/* Initialize SSL. */
+	initSSL();
 
 	/* Refresh connections. */
 	pthread_create (&refresh, NULL, refreshConn, 0);

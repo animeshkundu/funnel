@@ -1,6 +1,12 @@
 #include "ssl.h"
 
-static int sslLock = 0;
+int initSSL() {
+	/* Handle error for each of the following functions. */
+	SSL_load_error_strings ();
+	SSL_library_init (); /* Stupid function ain't reentrant. */
+	return 1;
+}
+
 
 /* Establish a connection using an SSL layer.  No error handling on this function. */
 /* TODO: Send this to production only after fixing this function. */
@@ -13,14 +19,6 @@ connection *sslConnect (char * server, int port) {
 
 	c->socket = tcpConnect (server, port);
 	if (c->socket) {
-		
-		/* Handle error for each of the following functions. */
-		while(sslLock > 0) usleep(500);
-		sslLock = 1;
-		SSL_load_error_strings ();
-		SSL_library_init (); /* Stupid function ain't reentrant. */
-		sslLock = 0;
-
 		c->sslContext = SSL_CTX_new (SSLv23_client_method ());
 
 		if (c->sslContext == NULL) ERR_print_errors_fp (stderr);
