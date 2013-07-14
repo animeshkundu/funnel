@@ -1,5 +1,6 @@
 #include "hconn.h"
 
+/* Store data for cleaning. */
 static __thread int jsmnCount = 0;
 static __thread int freeSock = -1;
 static __thread int freeCsock = -1;
@@ -153,7 +154,7 @@ int handleRequest(int cSock, conn hconn[], int maxConn) {
 	if(443 == hconn[cur]->port) retVal = handleSSL(hconn, cur, data, response);
 	else retVal = handleTCP(hconn, cur, data, response);
 
-	if(retVal < 0) { close(cSock); freeSock = 1; return -1; }
+	if(retVal < 0) { close(cSock); freeSock = -1; return -1; }
 
 	LOGV(6, "Response : ", response);
 	strcat(response, "\r\n"); 

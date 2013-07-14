@@ -1,11 +1,17 @@
 #include "conn.h"
 
-int check(conn c, char host[], int port) {
+static void addConn(conn);
+static int deleteConn(conn);
+static int _initSSL(conn);
+
+/* Compares connection pool structures. */
+static int check(conn c, char host[], int port) {
 	LOGV(0, "Checking ", c->host); LOG(0, "");
 	if(0 == strcmp(host, c->host) && port == c->port) return 1;
 	return 0;
 }
 
+/* Check if there is an already existing connection pool. */
 int exists (conn hconn[], int maxConn, char host[], int port) {
 	LOGD(0, "Max Connections : ", maxConn);
 	if(NULL == hconn) return -1;
@@ -25,6 +31,7 @@ int exists (conn hconn[], int maxConn, char host[], int port) {
 	return -1;
 }
 
+/* TODO: Rewrite this. Minimize memory leak as much as possible. */
 void refresher(conn hconn[], int maxConn) {
 	if (maxConn <= 0) {
 	   usleep(5000); return;
@@ -92,13 +99,13 @@ conn newSslConn(char host[], int port) {
 	strcpy(c->host, host);
 	c->port = port;
 	
-	initSsl(c);
+	_initSSL(c);
 
 	LOG(0, "Created new connection.");
 	return c;
 }
 
-int initSsl(conn c) {
+static int _initSSL(conn c) {
 	int i;
 
 	for(i=0; i<MINCONN; i++) {
@@ -117,7 +124,7 @@ int initSsl(conn c) {
 	return 1;
 }
 
-void addConn(conn c) {
+static void addConn(conn c) {
 	/* Limit upper boundary. */
 	if(c->maxConn >= MAXCONN) return;
 
@@ -133,7 +140,8 @@ void addConn(conn c) {
 	LOGD(6, "Added Connection", c->maxConn);
 }
 
-int deleteConn(conn c) {
+/* TODO: Minimize memory loss. */
+static int deleteConn(conn c) {
 	/* Limit lower boundary. */
 	if(c->maxConn > MINCONN && ((443 == c->port && 0 == c->connStatus[c->maxConn]) || 0 == c->tcpConnPool[c->maxConn])) {
 		c->maxConn--;

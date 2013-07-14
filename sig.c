@@ -1,6 +1,9 @@
 #include "sig.h"
 
-void handleSignals(int signo) {
+/* Handle signal delivered to threads directly. */
+static void handleSignals(int signo) {
+
+	/* Handling should be more robust. */
 	switch(signo) {
 		case SIGSEGV: LOG(10, "Received SIGSEGV. Exiting.");
 					  if(freeStruct != NULL && freeCsock > -1) 
@@ -20,7 +23,6 @@ void handleSignals(int signo) {
 
 void registerSignalHandler() {
     struct sigaction act;
-    int r;
 
     memset(&act, 0, sizeof(act));
 
@@ -32,7 +34,8 @@ void registerSignalHandler() {
     sigaction(SIGSEGV, &act, NULL);
 }
 
-void * sig_thread(void *arg) {
+/* Handle all other signal in separate thread. */
+static void * signalThread(void *arg) {
 	sigset_t *set = arg;
    	int s, sig;
 
@@ -47,13 +50,12 @@ void * sig_thread(void *arg) {
 void signalHandler() {
 	pthread_t thread;
 	sigset_t set;
-	int s;
 
 	sigemptyset(&set);
 	sigaddset(&set, SIGSEGV);
 	sigaddset(&set, SIGPIPE);
 
 	pthread_sigmask(SIG_BLOCK, &set, NULL);
-	pthread_create(&thread, NULL, &sig_thread, (void *) &set);
+	pthread_create(&thread, NULL, &signalThread, (void *) &set);
 	pthread_detach(thread);
 }

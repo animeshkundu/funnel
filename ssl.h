@@ -1,9 +1,9 @@
+#ifndef __SSL_H_
+#define __SSL_H_ 
+
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-
-#ifndef __SSL_H_
-#define __SSL_H_ 1
 
 #include "tcp.h"
 

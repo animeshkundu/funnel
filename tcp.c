@@ -1,6 +1,6 @@
 #include "tcp.h"
 
-int throwError(char *msg) {
+static int throwError(char *msg) {
 	perror(msg); exit(1);
 }
 

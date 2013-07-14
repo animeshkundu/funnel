@@ -1,9 +1,10 @@
 #include "funnel.h"
 
-static conn handleConn[4096]; 
+static conn handleConn[MAXSTRUCT]; 
 static int maxConn = 0;
 
-void * processRequest (void *data) {
+/* Worker Thread. */
+static void * processRequest (void *data) {
 	int sock = *((int *)(data));
 	LOGD(0, "Inside new thread", sock);
 	int curVal = handleRequest(sock, handleConn, maxConn);
@@ -12,17 +13,18 @@ void * processRequest (void *data) {
 	pthread_exit(NULL);
 }
 
-void * refreshConn (void *ptr) {
+/* Garbage collecter and maintainence. */
+static void * refreshConn (void *ptr) {
 	while(1) {
-		sleep(1);
+		usleep(50000);
 		if(maxConn <= 0)  continue;
 		refresher(handleConn, maxConn);
 	}
 	pthread_exit(NULL);
 }
 
-int main() {
 
+int main() {
 	int fd, childfd, clientLen;
 	struct sockaddr_in clientAddr;
 	pthread_t thread, refresh;
@@ -34,7 +36,8 @@ int main() {
 	pthread_create (&refresh, NULL, refreshConn, 0);
 	pthread_detach (refresh);
 
-	fd = tcpCreate(4321);
+	/* Start crap. */
+	fd = tcpCreate(PORT);
 	if (fd < 0) { LOG(10, "Could not create server"); exit(1); }
 	clientLen = sizeof(clientAddr);
 
@@ -51,6 +54,7 @@ int main() {
 		}
 	}
 
+	/* Ideally should never be here. */
 	close(fd);
 	return 1;
 }

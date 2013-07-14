@@ -1,12 +1,14 @@
 #ifndef __HCONN_H_
-#define __HCONN_H_ 1
+#define __HCONN_H_ 
 
 #include "conn.h"
 #include "jsmn.h"
+#include "sig.h"
 
-jsmn_parser jsmnP;
-jsmntok_t jsmnTok[1000];
+static __thread jsmn_parser jsmnP;
+static __thread jsmntok_t jsmnTok[MAXSTRUCT];
 static __thread int jsmnR, jsmnCount;
+
 static __thread int freeSock, freeCsock;
 static __thread conn freeStruct;
 
