@@ -6,7 +6,7 @@ static int _initSSL(conn);
 
 /* Compares connection pool structures. */
 static int check(conn c, char host[], int port) {
-	LOGV(0, "Checking ", c->host); LOG(0, "");
+	LOGV(0, "Checking ", c->host);
 	if(0 == strcmp(host, c->host) && port == c->port) return 1;
 	return 0;
 }
