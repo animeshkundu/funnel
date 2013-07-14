@@ -32,7 +32,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = funnel$(EXEEXT)
+bin_PROGRAMS = funnel$(EXEEXT) hitMeServer$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -54,6 +54,9 @@ am_funnel_OBJECTS = conn.$(OBJEXT) funnel.$(OBJEXT) hconn.$(OBJEXT) \
 	jsmn.$(OBJEXT) sig.$(OBJEXT) ssl.$(OBJEXT) tcp.$(OBJEXT)
 funnel_OBJECTS = $(am_funnel_OBJECTS)
 funnel_LDADD = $(LDADD)
+am_hitMeServer_OBJECTS = hitServer.$(OBJEXT) tcp.$(OBJEXT)
+hitMeServer_OBJECTS = $(am_hitMeServer_OBJECTS)
+hitMeServer_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -62,8 +65,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(funnel_SOURCES)
-DIST_SOURCES = $(funnel_SOURCES)
+SOURCES = $(funnel_SOURCES) $(hitMeServer_SOURCES)
+DIST_SOURCES = $(funnel_SOURCES) $(hitMeServer_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -172,6 +175,7 @@ top_srcdir = @top_srcdir@
 @DEBUG_FALSE@AM_CXXFLAGS = -O2
 @DEBUG_TRUE@AM_CXXFLAGS = -g3 -O0
 funnel_SOURCES = conn.c funnel.c hconn.c jsmn.c sig.c ssl.c tcp.c
+hitMeServer_SOURCES = hitServer.c tcp.c
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -266,6 +270,9 @@ clean-binPROGRAMS:
 funnel$(EXEEXT): $(funnel_OBJECTS) $(funnel_DEPENDENCIES) $(EXTRA_funnel_DEPENDENCIES) 
 	@rm -f funnel$(EXEEXT)
 	$(LINK) $(funnel_OBJECTS) $(funnel_LDADD) $(LIBS)
+hitMeServer$(EXEEXT): $(hitMeServer_OBJECTS) $(hitMeServer_DEPENDENCIES) $(EXTRA_hitMeServer_DEPENDENCIES) 
+	@rm -f hitMeServer$(EXEEXT)
+	$(LINK) $(hitMeServer_OBJECTS) $(hitMeServer_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -276,6 +283,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/funnel.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hconn.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hitServer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jsmn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sig.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssl.Po@am__quote@

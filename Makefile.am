@@ -8,5 +8,6 @@ AM_CFLAGS = -O2
 AM_CXXFLAGS = -O2
 endif
 
-bin_PROGRAMS = funnel
+bin_PROGRAMS = funnel hitMeServer
 funnel_SOURCES = conn.c funnel.c hconn.c jsmn.c sig.c ssl.c tcp.c
+hitMeServer_SOURCES = hitServer.c tcp.c
