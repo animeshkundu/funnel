@@ -1,1 +1,6 @@
-Funnelling - Framework for connection pooling.
+Funnelling - Framework for Network Connection Pooling.
+
+Really stole the idea from Database Connection Pooling.
+Ideally title should be Network Connection Pooling. Really gotta work hard to remove "Framework".
+
+And you already know more than me. - Animesh

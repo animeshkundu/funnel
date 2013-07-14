@@ -1,1 +1,5 @@
-Initial commit
+Version 0.001
+-------------
+Added boiler plate for tcp ssl and json_decode.
+Added very fragile connection pooling class.
+Added a sample threading server and handle to get it working.
